@@ -1,0 +1,27 @@
+# Raw geographic and electoral data (very large directories, >3GB total)
+/mapas/
+/resultados/
+/scratch/
+
+# Editor and Tooling caches
+.claude/
+.agents/
+
+# Python cache and environment directories
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+.pytest_cache/
+
+# OS-generated files
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.stackdump
