@@ -26,7 +26,12 @@ async function loadCurrentYear() {
     }
 
     selectedLocationIDs.clear();
-    STATE.selectedCountry = null;
+    if (STATE.selectedCountry) {
+      const hasCountry = STATE.data.COUNTRIES?.[STATE.scope.key]?.[STATE.selectedCountry];
+      if (!hasCountry) {
+        STATE.selectedCountry = null;
+      }
+    }
     // Demote gracioso de scope na troca de ano se a chave não existir
     if (STATE.scope.level === 'freguesia' && (!STATE.data.RESULTS || !STATE.data.RESULTS[STATE.scope.key])) {
       const concKey = STATE.scope.key.slice(0, 4);
@@ -64,7 +69,7 @@ async function loadCurrentYear() {
     } else if (STATE.scope.level === 'distrito') {
       STATE.mapLevel = STATE.granularity;
     } else if (STATE.scope.level === 'concelho') {
-      STATE.mapLevel = (STATE.granularity === 'freguesia') ? 'freguesia' : 'concelho';
+      STATE.mapLevel = 'freguesia';
     } else {
       STATE.mapLevel = 'freguesia';
     }
