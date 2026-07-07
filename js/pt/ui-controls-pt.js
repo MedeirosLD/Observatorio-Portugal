@@ -165,6 +165,11 @@ function updateElectionUiVisibility() {
   
   const auSubtypeCtrl = document.getElementById('auSubtypeCtrl');
   if (auSubtypeCtrl) auSubtypeCtrl.style.display = isAu ? '' : 'none';
+
+  const btnEuropa = document.getElementById('btnShortcutEuropa');
+  const btnMundo = document.getElementById('btnShortcutMundo');
+  if (btnEuropa) btnEuropa.style.display = isAu ? 'none' : '';
+  if (btnMundo) btnMundo.style.display = isAu ? 'none' : '';
 }
 
 function syncVizModeChips() {
