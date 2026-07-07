@@ -271,27 +271,48 @@ function setupControls() {
       STATE.granularity = val;
       
       if (STATE.currentCirculo) {
-        if (val === 'distrito') {
-          STATE.mapLevel = 'distrito';
-          STATE.scope = { level: 'distrito', key: STATE.currentCirculo };
-        } else if (val === 'concelho') {
-          STATE.mapLevel = 'concelho';
-          STATE.scope = { level: 'distrito', key: STATE.currentCirculo };
-        } else if (val === 'freguesia') {
-          STATE.mapLevel = 'freguesia';
-          STATE.scope = { level: 'distrito', key: STATE.currentCirculo };
-        }
-        window.syncMapLevel();
-        window.applyFiltersAndRedraw();
-      } else if (STATE.scope.level === 'concelho') {
-        if (val === 'distrito') {
-          window.navigateToDistrito(STATE.scope.circulo, { focus: false });
-        } else if (val === 'concelho') {
-          STATE.mapLevel = 'concelho';
-          window.syncMapLevel();
-          window.applyFiltersAndRedraw();
-        } else if (val === 'freguesia') {
-          STATE.mapLevel = 'freguesia';
+        if (STATE.scope.level === 'freguesia') {
+          if (val === 'distrito') {
+            window.navigateToDistrito(STATE.scope.circulo, { focus: false });
+          } else if (val === 'concelho') {
+            STATE.mapLevel = 'concelho';
+            STATE.scope = { 
+              level: 'concelho', 
+              key: STATE.scope.concelho, 
+              nome: (typeof getConcelhoNome === 'function') ? getConcelhoNome(STATE.scope.concelho) : STATE.scope.concelho,
+              circulo: STATE.scope.circulo
+            };
+            window.syncMapLevel();
+            window.applyFiltersAndRedraw();
+          } else if (val === 'freguesia') {
+            STATE.mapLevel = 'freguesia';
+            window.syncMapLevel();
+            window.applyFiltersAndRedraw();
+          }
+        } else if (STATE.scope.level === 'concelho') {
+          if (val === 'distrito') {
+            window.navigateToDistrito(STATE.scope.circulo, { focus: false });
+          } else if (val === 'concelho') {
+            STATE.mapLevel = 'concelho';
+            STATE.scope = { level: 'distrito', key: STATE.currentCirculo };
+            window.syncMapLevel();
+            window.applyFiltersAndRedraw();
+          } else if (val === 'freguesia') {
+            STATE.mapLevel = 'freguesia';
+            window.syncMapLevel();
+            window.applyFiltersAndRedraw();
+          }
+        } else {
+          if (val === 'distrito') {
+            STATE.mapLevel = 'distrito';
+            STATE.scope = { level: 'distrito', key: STATE.currentCirculo };
+          } else if (val === 'concelho') {
+            STATE.mapLevel = 'concelho';
+            STATE.scope = { level: 'distrito', key: STATE.currentCirculo };
+          } else if (val === 'freguesia') {
+            STATE.mapLevel = 'freguesia';
+            STATE.scope = { level: 'distrito', key: STATE.currentCirculo };
+          }
           window.syncMapLevel();
           window.applyFiltersAndRedraw();
         }
