@@ -219,16 +219,23 @@ def parse_globais_sheet(df_raw, year):
     if i_pnul is None:
         raise ValueError(f"'% nulos' não encontrado em {hdr[:16]}")
 
-    # bloco partidário: a partir de i_pnul+1; 'mandatos' ou 'tot_mand' isolado primeiro = total
+    # Localizar a coluna de total de mandatos em toda a folha
+    i_mand_total = idx_of("total de mandatos", "total mandatos", "total_mandatos", "tot_mand", "tot_mands")
+    if i_mand_total is None:
+        for idx_col, name_col in enumerate(low):
+            if name_col in ("mandatos", "tot_mand", "tot_mands"):
+                if idx_col < i_pnul + 2:
+                    i_mand_total = idx_col
+                    break
+
     j = i_pnul + 1
-    i_mand_total = None
-    if j < len(hdr) and low[j] in ("mandatos", "tot_mand", "tot_mands"):
-        i_mand_total = j
+    if i_mand_total is not None and j == i_mand_total:
         j += 1
+
     groups = []  # (party, i_votes, i_mand|None)
     while j < len(hdr):
         name = hdr[j]
-        if not name or low[j] in ("% votos", "% votantes", "mandatos", "tot_mand", "total de mandatos", "total mandatos", "mandatos total"):
+        if not name or low[j] in ("% votos", "% votantes", "perc_vot", "mandatos", "mand", "tot_mand", "total de mandatos", "total mandatos", "mandatos total"):
             j += 1
             continue
         i_votes = j
@@ -236,7 +243,7 @@ def parse_globais_sheet(df_raw, year):
         k = j + 1
         if k < len(hdr) and (low[k] in ("% votos", "% votantes", "perc_vot") or low[k].startswith("perc_") or low[k].startswith("%")):
             k += 1
-        if k < len(hdr) and (low[k] == "mandatos" or low[k].startswith("mand_")):
+        if k < len(hdr) and (low[k] in ("mandatos", "mand") or low[k].startswith("mand_") or low[k].startswith("mandatos_")):
             i_mand = k
             k += 1
         groups.append((name, i_votes, i_mand))
