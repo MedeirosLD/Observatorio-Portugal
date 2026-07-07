@@ -321,6 +321,22 @@ def bbox_ok(gdf):
 def build_year(year, simplify_freg=18, simplify_conc=35, simplify_dist=90):
     print(f"=== {year} ===")
     parts = []
+
+    # Carregar máscara continental para corte (anos >= 2015) para remover rios/águas
+    cont_mask = None
+    if year >= 2015:
+        djson_path = OUT_DIR / "mapas" / "distritos.geojson"
+        if djson_path.exists():
+            print("  [Clip] a carregar máscara continental de distritos (do GeoJSON)...")
+            dgdf = gpd.read_file(djson_path)
+            cont_mask = dgdf[dgdf["circulo"] <= "18"].to_crs(3763).dissolve()
+        else:
+            print("  [Clip] a carregar máscara continental de distritos (do SHP)...")
+            dist_shp = MAPAS_DIR / "distritos-shapefile" / "distritos.shp"
+            dgdf, _ = read_shapefile(dist_shp)
+            dgdf["circulo"] = dgdf["CCA_1"].astype(str).str.strip().str.zfill(2)
+            cont_mask = dgdf[dgdf["circulo"] <= "18"].to_crs(3763).dissolve()
+
     if year == 2026:
         gpkg_path = MAPAS_DIR / "freguesias2026.gpkg"
         if not gpkg_path.exists():
@@ -331,7 +347,15 @@ def build_year(year, simplify_freg=18, simplify_conc=35, simplify_dist=90):
         gdf.geometry = shapely.force_2d(gdf.geometry)
         print(f"  GPKG 2026: {gpkg_path.name} ({len(gdf)} rows, crs={gdf.crs.name if gdf.crs else 'NONE'})")
         norm = normalize_layer(gdf, gpkg_path.name)
-        parts.append(norm.to_crs(3763))
+        
+        cont_part = norm[norm["circulo"] <= "18"].to_crs(3763)
+        if cont_mask is not None:
+            print("  [Clip] a cortar continente de 2026...")
+            cont_part = gpd.clip(cont_part, cont_mask)
+        parts.append(cont_part)
+        
+        ilhas_part = norm[norm["circulo"] >= "30"].to_crs(3763)
+        parts.append(ilhas_part)
     else:
         cont_path = find_year_shapefile(MAPAS_DIR / "continente freguesias", year)
         ilhas_path = find_year_shapefile(MAPAS_DIR / "madeira e açores freguesias", year)
@@ -340,14 +364,19 @@ def build_year(year, simplify_freg=18, simplify_conc=35, simplify_dist=90):
             print(f"  continente: {cont_path.name} ({len(gdf)} rows, crs={gdf.crs.name if gdf.crs else 'NONE'}"
                   + (f", enc={enc}" if enc else "") + ")")
             norm = normalize_layer(gdf, cont_path.name)
-            parts.append(norm[norm["circulo"] <= "18"].to_crs(3763))
+            
+            cont_part = norm[norm["circulo"] <= "18"].to_crs(3763)
+            if year >= 2015 and cont_mask is not None:
+                print(f"  [Clip] a cortar continente de {year}...")
+                cont_part = gpd.clip(cont_part, cont_mask)
+            parts.append(cont_part)
         if ilhas_path:
             gdf, enc = read_shapefile(ilhas_path)
             print(f"  ilhas: {ilhas_path.name} ({len(gdf)} rows, crs={gdf.crs.name if gdf.crs else 'NONE'}"
                   + (f", enc={enc}" if enc else "") + ")")
             norm = normalize_layer(gdf, ilhas_path.name)
             ilhas = norm[norm["circulo"] >= "30"].to_crs(3763)
-            # Alguns anos (ex.: 2005) não trazem polígonos de ilha no shapefile próprio.
+            # Alguns anos (ex.: 2005) não trazem polígonos de island no shapefile próprio.
             # Fallback: usar a geometria de ilhas de 2002 (já em posição real).
             if len(ilhas) == 0:
                 fb = find_year_shapefile(MAPAS_DIR / "madeira e açores freguesias", 2002)
