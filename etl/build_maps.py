@@ -209,12 +209,31 @@ def reposition_islands(ilhas, year):
         std_cx = np.nanstd(sub["_cx"])
         std_tx = np.nanstd(sub["_tx"])
         
-        # Fator de escala: se for <= 1999, as ilhas vinham em insets muito pequenos no shapefile original.
-        # Nos anos 2002-2011 elas já vêm na escala real 1:1.
-        if year <= 1999:
-            scale = std_tx / std_cx if std_cx > 10.0 else (1.063 if grp.startswith("3") else 1.057)
+        # Calcular escala dinamicamente se houver freguesias suficientes para um desvio padrão fiável
+        # Se for freguesia única (ex. Porto Santo 32, Corvo 49), std_cx será 0. Fallback inteligente:
+        if std_cx > 10.0 and std_tx > 10.0:
+            scale = std_tx / std_cx
         else:
-            scale = 1.0
+            if grp.startswith("3"):
+                # Madeira: Porto Santo (32) segue a escala da ilha da Madeira (31)
+                # que calculamos previamente no loop ou a partir do subgrupo 31.
+                # Para maior robustez, faremos o cálculo com base nos outros grupos.
+                sibling = ilhas[ilhas["dicofre"].str.startswith("31")]
+                if len(sibling) > 0:
+                    sibling_std_cx = np.nanstd(sibling["_cx"])
+                    sibling_std_tx = np.nanstd(sibling["_tx"])
+                    scale = sibling_std_tx / sibling_std_cx if sibling_std_cx > 10.0 else 1.0
+                else:
+                    scale = 1.0
+            else:
+                # Açores: Corvo (49) ou outra ilha pequena segue a mediana de São Miguel (42), Terceira (46), etc.
+                sibling_scales = []
+                for sg_grp, sg_sub in ilhas[ilhas["dicofre"].str.startswith("4")].groupby("_grp"):
+                    sg_std_cx = np.nanstd(sg_sub["_cx"])
+                    sg_std_tx = np.nanstd(sg_sub["_tx"])
+                    if sg_std_cx > 10.0 and sg_std_tx > 10.0:
+                        sibling_scales.append(sg_std_tx / sg_std_cx)
+                scale = np.median(sibling_scales) if sibling_scales else 1.0
 
         scaled_cx = x0 + scale * (sub["_cx"] - x0)
         scaled_cy = y0 + scale * (sub["_cy"] - y0)
