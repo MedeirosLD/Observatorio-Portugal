@@ -585,17 +585,21 @@ function syncMapLevel() {
       STATE.distritosLayer?.setData(geo.distritos.features);
       STATE.concelhosLayer?.setData([]);
       STATE.freguesiasLayer?.setData([]);
+      STATE.distritosOutlineLayer?.setData([]);
+      STATE.concelhosOutlineLayer?.setData([]);
     } else if (STATE.granularity === 'concelho') {
       STATE.distritosLayer?.setData([]);
       STATE.concelhosLayer?.setData(geo.concelhos.features);
       STATE.freguesiasLayer?.setData([]);
+      STATE.distritosOutlineLayer?.setData(geo.distritos.features); // Contorno do distrito sobre os concelhos
+      STATE.concelhosOutlineLayer?.setData([]);
     } else if (STATE.granularity === 'freguesia') {
       STATE.distritosLayer?.setData([]);
       STATE.concelhosLayer?.setData([]);
       STATE.freguesiasLayer?.setData(geo.freguesias?.features || []);
+      STATE.distritosOutlineLayer?.setData(geo.distritos.features); // Contorno do distrito sobre as freguesias
+      STATE.concelhosOutlineLayer?.setData(geo.concelhos.features); // Contorno do concelho sobre as freguesias
     }
-    STATE.distritosOutlineLayer?.setData([]);
-    STATE.concelhosOutlineLayer?.setData([]);
     return;
   }
 
