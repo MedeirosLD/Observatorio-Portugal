@@ -19,7 +19,7 @@ An interactive, client-side web application for visualizing electoral results in
 
 ## Project Structure
 
-- `eleicoes.html` — The main entry point and user interface.
+- `index.html` — The main entry point and user interface.
 - `landing.css` / `style.css` — Modern styling and layout definitions.
 - `js/` — Client-side logic:
   - `globals.js` — Global configurations, colors, and election definitions.
