@@ -62,7 +62,7 @@ async function loadCurrentYear() {
     if (STATE.scope.level === 'national') {
       STATE.mapLevel = STATE.granularity;
     } else if (STATE.scope.level === 'distrito') {
-      STATE.mapLevel = (STATE.granularity === 'distrito') ? 'distrito' : 'concelho';
+      STATE.mapLevel = STATE.granularity;
     } else if (STATE.scope.level === 'concelho') {
       STATE.mapLevel = (STATE.granularity === 'freguesia') ? 'freguesia' : 'concelho';
     } else {
@@ -242,10 +242,8 @@ function setupControls() {
         STATE.scope = { level: 'national', key: null };
       }
       
-      if (dom.mapLevelChips) {
-        dom.mapLevelChips.querySelectorAll('.chip-button').forEach((b) => {
-          b.classList.toggle('active', b.dataset.value === STATE.granularity);
-        });
+      if (typeof window.syncMapLevelChips === 'function') {
+        window.syncMapLevelChips();
       }
       
       loadCurrentYear();
@@ -265,10 +263,35 @@ function setupControls() {
     btn.addEventListener('click', () => {
       const val = btn.dataset.value;
       STATE.granularity = val;
-      dom.mapLevelChips.querySelectorAll('.chip-button').forEach((b) => {
-        b.classList.toggle('active', b === btn);
-      });
-      window.navigateToNational({ focus: true });
+      
+      if (STATE.currentCirculo) {
+        if (val === 'distrito') {
+          STATE.mapLevel = 'distrito';
+          STATE.scope = { level: 'distrito', key: STATE.currentCirculo };
+        } else if (val === 'concelho') {
+          STATE.mapLevel = 'concelho';
+          STATE.scope = { level: 'distrito', key: STATE.currentCirculo };
+        } else if (val === 'freguesia') {
+          STATE.mapLevel = 'freguesia';
+          STATE.scope = { level: 'distrito', key: STATE.currentCirculo };
+        }
+        window.syncMapLevel();
+        window.applyFiltersAndRedraw();
+      } else if (STATE.scope.level === 'concelho') {
+        if (val === 'distrito') {
+          window.navigateToDistrito(STATE.scope.circulo, { focus: false });
+        } else if (val === 'concelho') {
+          STATE.mapLevel = 'concelho';
+          window.syncMapLevel();
+          window.applyFiltersAndRedraw();
+        } else if (val === 'freguesia') {
+          STATE.mapLevel = 'freguesia';
+          window.syncMapLevel();
+          window.applyFiltersAndRedraw();
+        }
+      } else {
+        window.navigateToNational({ focus: true });
+      }
     });
   });
 
@@ -347,10 +370,8 @@ async function bootstrapData() {
   populateYearSelect(years);
 
   // Sincronizar o estado dos chips de granularidade no arranque
-  if (dom.mapLevelChips) {
-    dom.mapLevelChips.querySelectorAll('.chip-button').forEach((b) => {
-      b.classList.toggle('active', b.dataset.value === STATE.granularity);
-    });
+  if (typeof window.syncMapLevelChips === 'function') {
+    window.syncMapLevelChips();
   }
 
   await loadCurrentYear();
