@@ -67,7 +67,10 @@ async function loadCurrentYear() {
     if (STATE.scope.level === 'national') {
       STATE.mapLevel = STATE.granularity;
     } else if (STATE.scope.level === 'distrito') {
-      STATE.mapLevel = STATE.granularity;
+      // Preserva o nível de detalhe (mapLevel) atual do distrito se for válido
+      if (STATE.mapLevel !== 'distrito' && STATE.mapLevel !== 'concelho' && STATE.mapLevel !== 'freguesia') {
+        STATE.mapLevel = STATE.granularity;
+      }
     } else if (STATE.scope.level === 'concelho') {
       STATE.mapLevel = 'freguesia';
     } else {
