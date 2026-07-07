@@ -187,6 +187,39 @@ function getFeatureStyle(level, feature) {
     if (STATE.selectedCountry) {
       inFocus = (id === STATE.selectedCountry);
     }
+  } else if (STATE.scope && STATE.scope.level && STATE.scope.level !== 'national') {
+    const activeLevel = STATE.scope.level;
+    const activeKey = STATE.scope.key;
+    
+    if (activeLevel === 'distrito') {
+      if (level === 'distrito') {
+        inFocus = (id === activeKey);
+      } else if (level === 'concelho') {
+        const circ = feature.properties?.circulo || id.substring(0, 2);
+        inFocus = (circ === activeKey);
+      } else if (level === 'freguesia') {
+        const circ = feature.properties?.circulo || id.substring(0, 2);
+        inFocus = (circ === activeKey);
+      }
+    } else if (activeLevel === 'concelho') {
+      if (level === 'distrito') {
+        inFocus = false;
+      } else if (level === 'concelho') {
+        inFocus = (id === activeKey);
+      } else if (level === 'freguesia') {
+        const dico = feature.properties?.dico || id.substring(0, 4);
+        inFocus = (dico === activeKey);
+      }
+    } else if (activeLevel === 'freguesia') {
+      if (level === 'distrito') {
+        inFocus = false;
+      } else if (level === 'concelho') {
+        const conc = STATE.scope.concelho || activeKey.substring(0, 4);
+        inFocus = (id === conc);
+      } else if (level === 'freguesia') {
+        inFocus = (id === activeKey);
+      }
+    }
   }
 
   const fillInfo = getFeatureFill(level, feature);
@@ -604,62 +637,86 @@ function syncMapLevel() {
   }
 
   // Se um distrito (ou círculo de emigração) estiver selecionado (Visão de Resolução Mista)
+  const selectedConcelhoIdForFreg = (STATE.scope.level === 'concelho' || STATE.scope.level === 'freguesia')
+    ? (STATE.scope.level === 'concelho' ? STATE.scope.key : STATE.scope.key.slice(0, 4))
+    : null;
+
   // --- 1. Distritos Layer ---
   let distritoFeatures = [];
-  if (STATE.currentCirculo === 'E1') {
-    distritoFeatures = geo.estrangeiroEuropa?.features || [];
-  } else if (STATE.currentCirculo === 'E2') {
-    distritoFeatures = geo.estrangeiroMundo?.features || [];
-  } else {
-    // Exibimos todos os distritos exceto o selecionado
-    distritoFeatures = geo.distritos.features.filter(f => f.properties?.circulo !== STATE.currentCirculo);
+  if (STATE.granularity === 'distrito') {
+    if (STATE.currentCirculo === 'E1') {
+      distritoFeatures = geo.estrangeiroEuropa?.features || [];
+    } else if (STATE.currentCirculo === 'E2') {
+      distritoFeatures = geo.estrangeiroMundo?.features || [];
+    } else {
+      // Exibimos todos os distritos exceto o selecionado
+      distritoFeatures = geo.distritos.features.filter(f => f.properties?.circulo !== STATE.currentCirculo);
+    }
   }
   STATE.distritosLayer?.setData(distritoFeatures);
 
   // --- 2. Concelhos Layer ---
   let concelhoFeatures = [];
-  if (!CIRCULOS_SEM_GEOMETRIA.has(STATE.currentCirculo)) {
-    // Se o escopo for concelho ou freguesia, exibimos todos os concelhos do distrito EXCETO o selecionado
-    const selectedConcelhoId = (STATE.scope.level === 'concelho' || STATE.scope.level === 'freguesia') 
-      ? (STATE.scope.level === 'concelho' ? STATE.scope.key : STATE.scope.key.slice(0, 4))
-      : null;
-
-    if (selectedConcelhoId) {
-      concelhoFeatures = geo.concelhos.features.filter(f => 
-        f.properties?.circulo === STATE.currentCirculo && f.properties?.dico !== selectedConcelhoId
-      );
+  if (STATE.granularity === 'concelho') {
+    // Se a granularidade geral for concelhos, exibimos todos os concelhos exceto o selecionado para freguesias
+    if (selectedConcelhoIdForFreg) {
+      concelhoFeatures = geo.concelhos.features.filter(f => f.properties?.dico !== selectedConcelhoIdForFreg);
     } else {
-      concelhoFeatures = geo.concelhos.features.filter(f => 
-        f.properties?.circulo === STATE.currentCirculo
-      );
+      concelhoFeatures = geo.concelhos.features;
+    }
+  } else if (STATE.granularity === 'distrito') {
+    // Se a granularidade for distrito e temos distrito selecionado, mostramos os concelhos desse distrito
+    if (!CIRCULOS_SEM_GEOMETRIA.has(STATE.currentCirculo)) {
+      if (selectedConcelhoIdForFreg) {
+        concelhoFeatures = geo.concelhos.features.filter(f => 
+          f.properties?.circulo === STATE.currentCirculo && f.properties?.dico !== selectedConcelhoIdForFreg
+        );
+      } else {
+        concelhoFeatures = geo.concelhos.features.filter(f => 
+          f.properties?.circulo === STATE.currentCirculo
+        );
+      }
     }
   }
   STATE.concelhosLayer?.setData(concelhoFeatures);
 
   // --- 3. Freguesias Layer ---
   let freguesiaFeatures = [];
-  const selectedConcelhoIdForFreg = (STATE.scope.level === 'concelho' || STATE.scope.level === 'freguesia')
-    ? (STATE.scope.level === 'concelho' ? STATE.scope.key : STATE.scope.key.slice(0, 4))
-    : null;
-
-  if (selectedConcelhoIdForFreg && geo.freguesias?.features) {
-    freguesiaFeatures = geo.freguesias.features.filter(f => {
-      const dicofre = f.properties?.dicofre;
-      return dicofre && dicofre.slice(0, 4) === selectedConcelhoIdForFreg;
-    });
+  if (STATE.granularity === 'freguesia') {
+    freguesiaFeatures = geo.freguesias?.features || [];
+  } else {
+    // Apenas mostramos as freguesias do concelho em foco
+    if (selectedConcelhoIdForFreg && geo.freguesias?.features) {
+      freguesiaFeatures = geo.freguesias.features.filter(f => {
+        const dicofre = f.properties?.dicofre;
+        return dicofre && dicofre.slice(0, 4) === selectedConcelhoIdForFreg;
+      });
+    }
   }
   STATE.freguesiasLayer?.setData(freguesiaFeatures);
 
   // --- 4. Contornos (Outlines) ---
   let distOutlineFeats = [];
-  if (!CIRCULOS_SEM_GEOMETRIA.has(STATE.currentCirculo)) {
-    distOutlineFeats = geo.distritos.features.filter(f => f.properties?.circulo === STATE.currentCirculo);
+  if (STATE.granularity === 'concelho' || STATE.granularity === 'freguesia') {
+    // Contorno de todos os distritos por cima
+    distOutlineFeats = geo.distritos.features;
+  } else {
+    // Apenas contorno do distrito selecionado
+    if (!CIRCULOS_SEM_GEOMETRIA.has(STATE.currentCirculo)) {
+      distOutlineFeats = geo.distritos.features.filter(f => f.properties?.circulo === STATE.currentCirculo);
+    }
   }
   STATE.distritosOutlineLayer?.setData(distOutlineFeats);
 
   let concOutlineFeats = [];
-  if (selectedConcelhoIdForFreg) {
-    concOutlineFeats = geo.concelhos.features.filter(f => f.properties?.dico === selectedConcelhoIdForFreg);
+  if (STATE.granularity === 'freguesia') {
+    // Contorno de todos os concelhos por cima
+    concOutlineFeats = geo.concelhos.features;
+  } else {
+    // Apenas contorno do concelho selecionado
+    if (selectedConcelhoIdForFreg) {
+      concOutlineFeats = geo.concelhos.features.filter(f => f.properties?.dico === selectedConcelhoIdForFreg);
+    }
   }
   STATE.concelhosOutlineLayer?.setData(concOutlineFeats);
 }
