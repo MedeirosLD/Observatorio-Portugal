@@ -636,13 +636,13 @@ function syncMapLevel() {
       STATE.distritosLayer?.setData([]);
       STATE.concelhosLayer?.setData(geo.concelhos.features);
       STATE.freguesiasLayer?.setData([]);
-      STATE.distritosOutlineLayer?.setData(geo.distritos.features); // Contorno do distrito sobre os concelhos
+      STATE.distritosOutlineLayer?.setData(geo.distritos.features.filter(f => f.properties?.circulo !== '30' && f.properties?.circulo !== '40')); // Contorno do distrito sobre os concelhos (menos ilhas)
       STATE.concelhosOutlineLayer?.setData([]);
     } else if (STATE.granularity === 'freguesia') {
       STATE.distritosLayer?.setData([]);
       STATE.concelhosLayer?.setData([]);
       STATE.freguesiasLayer?.setData(geo.freguesias?.features || []);
-      STATE.distritosOutlineLayer?.setData(geo.distritos.features); // Contorno do distrito sobre as freguesias
+      STATE.distritosOutlineLayer?.setData(geo.distritos.features.filter(f => f.properties?.circulo !== '30' && f.properties?.circulo !== '40')); // Contorno do distrito sobre as freguesias (menos ilhas)
       STATE.concelhosOutlineLayer?.setData(geo.concelhos.features); // Contorno do concelho sobre as freguesias
     }
     return;
@@ -699,8 +699,10 @@ function syncMapLevel() {
   // --- 4. Contornos (Outlines) ---
   let distOutlineFeats = [];
   if (!CIRCULOS_SEM_GEOMETRIA.has(STATE.currentCirculo) && STATE.mapLevel !== 'distrito') {
-    // Contorno do distrito selecionado
-    distOutlineFeats = geo.distritos.features.filter(f => f.properties?.circulo === STATE.currentCirculo);
+    if (STATE.currentCirculo !== '30' && STATE.currentCirculo !== '40') {
+      // Contorno do distrito selecionado (apenas para distritos do continente!)
+      distOutlineFeats = geo.distritos.features.filter(f => f.properties?.circulo === STATE.currentCirculo);
+    }
   }
   STATE.distritosOutlineLayer?.setData(distOutlineFeats);
 
