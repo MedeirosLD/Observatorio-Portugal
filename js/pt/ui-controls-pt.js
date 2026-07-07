@@ -168,8 +168,9 @@ function updateElectionUiVisibility() {
 
   const btnEuropa = document.getElementById('btnShortcutEuropa');
   const btnMundo = document.getElementById('btnShortcutMundo');
-  if (btnEuropa) btnEuropa.style.display = isAu ? 'none' : '';
-  if (btnMundo) btnMundo.style.display = isAu ? 'none' : '';
+  const isDiasporaHidden = isAu || isEe;
+  if (btnEuropa) btnEuropa.style.display = isDiasporaHidden ? 'none' : '';
+  if (btnMundo) btnMundo.style.display = isDiasporaHidden ? 'none' : '';
 }
 
 function syncVizModeChips() {
