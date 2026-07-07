@@ -186,12 +186,8 @@ def true_island_centroid(dicofre, year):
 
 
 def reposition_islands(ilhas, year):
-    """Desloca a geometria PRÓPRIA das ilhas do ano para a posição real, com uma
-    TRANSLAÇÃO uniforme por ilha (preserva o encaixe -> sem buracos). Deslocamento de
-    cada ilha = mediana de (centróide real por DICOFRE − centróide do ano) sobre as
-    freguesias do grupo. Usado apenas para anos <=2011 (os modernos usam a geometria
-    de referência diretamente). Agrupa pela coluna 'ilha'; se em falta, por componente
-    conexa da união."""
+    """Desloca e redimensiona a geometria PRÓPRIA das ilhas do ano para a posição real,
+    resolvendo a escala reduzida (insets) nos shapefiles antigos (<=1999)."""
     if len(ilhas) == 0:
         return ilhas
     ilhas = ilhas.copy()
@@ -202,25 +198,47 @@ def reposition_islands(ilhas, year):
     ilhas["_tx"] = [(p[0] if p else np.nan) for p in ref]
     ilhas["_ty"] = [(p[1] if p else np.nan) for p in ref]
 
-    if ilhas["ilha"].notna().any():
-        groups = ilhas["ilha"].fillna("?").tolist()
-    else:
-        merged = shapely.unary_union(ilhas.geometry.values)
-        polys = list(getattr(merged, "geoms", [merged]))
-        groups = [next((i for i, poly in enumerate(polys) if poly.intersects(p)), -1)
-                  for p in reps]
-    ilhas["_grp"] = groups
+    # Agrupar por ilha oficial usando o prefixo do dicofre (ex.: '42' = São Miguel, '31' = Madeira)
+    # Isso impede que ilhas diferentes sejam misturadas na mesma translação/escala
+    ilhas["_grp"] = ilhas["dicofre"].str[:2]
 
     out = []
-    for _, sub in ilhas.groupby("_grp"):
-        dx = np.nanmedian(sub["_tx"] - sub["_cx"])
-        dy = np.nanmedian(sub["_ty"] - sub["_cy"])
+    for grp, sub in ilhas.groupby("_grp"):
+        x0 = np.nanmedian(sub["_cx"])
+        y0 = np.nanmedian(sub["_cy"])
+        std_cx = np.nanstd(sub["_cx"])
+        std_tx = np.nanstd(sub["_tx"])
+        
+        # Fator de escala: se for <= 1999, as ilhas vinham em insets muito pequenos no shapefile original.
+        # Nos anos 2002-2011 elas já vêm na escala real 1:1.
+        if year <= 1999:
+            scale = std_tx / std_cx if std_cx > 10.0 else (1.063 if grp.startswith("3") else 1.057)
+        else:
+            scale = 1.0
+
+        scaled_cx = x0 + scale * (sub["_cx"] - x0)
+        scaled_cy = y0 + scale * (sub["_cy"] - y0)
+        dx = np.nanmedian(sub["_tx"] - scaled_cx)
+        dy = np.nanmedian(sub["_ty"] - scaled_cy)
+        
         dx = dx if np.isfinite(dx) else 0.0
         dy = dy if np.isfinite(dy) else 0.0
+        
         moved = sub.copy()
+        
+        def make_tf(s, x_val, y_val, tx, ty):
+            def tf(coords):
+                res = coords.copy()
+                res[:, 0] = x_val + s * (coords[:, 0] - x_val) + tx
+                res[:, 1] = y_val + s * (coords[:, 1] - y_val) + ty
+                return res
+            return tf
+
         moved["geometry"] = sub.geometry.apply(
-            lambda g: shapely.transform(g, lambda a: a + np.array([dx, dy])))
+            lambda g: shapely.transform(g, make_tf(scale, x0, y0, dx, dy))
+        )
         out.append(moved)
+        
     res = gpd.GeoDataFrame(pd.concat(out, ignore_index=True), crs=ilhas.crs)
     return res.drop(columns=["_cx", "_cy", "_tx", "_ty", "_grp"])
 
@@ -322,20 +340,19 @@ def build_year(year, simplify_freg=18, simplify_conc=35, simplify_dist=90):
     print(f"=== {year} ===")
     parts = []
 
-    # Carregar máscara continental para corte (anos >= 2015) para remover rios/águas
+    # Carregar máscara continental para corte (todos os anos) para remover rios/águas
     cont_mask = None
-    if year >= 2015:
-        djson_path = OUT_DIR / "mapas" / "distritos.geojson"
-        if djson_path.exists():
-            print("  [Clip] a carregar máscara continental de distritos (do GeoJSON)...")
-            dgdf = gpd.read_file(djson_path)
-            cont_mask = dgdf[dgdf["circulo"] <= "18"].to_crs(3763).dissolve()
-        else:
-            print("  [Clip] a carregar máscara continental de distritos (do SHP)...")
-            dist_shp = MAPAS_DIR / "distritos-shapefile" / "distritos.shp"
-            dgdf, _ = read_shapefile(dist_shp)
-            dgdf["circulo"] = dgdf["CCA_1"].astype(str).str.strip().str.zfill(2)
-            cont_mask = dgdf[dgdf["circulo"] <= "18"].to_crs(3763).dissolve()
+    djson_path = OUT_DIR / "mapas" / "distritos.geojson"
+    if djson_path.exists():
+        print("  [Clip] a carregar máscara continental de distritos (do GeoJSON)...")
+        dgdf = gpd.read_file(djson_path)
+        cont_mask = dgdf[dgdf["circulo"] <= "18"].to_crs(3763).dissolve()
+    else:
+        print("  [Clip] a carregar máscara continental de distritos (do SHP)...")
+        dist_shp = MAPAS_DIR / "distritos-shapefile" / "distritos.shp"
+        dgdf, _ = read_shapefile(dist_shp)
+        dgdf["circulo"] = dgdf["CCA_1"].astype(str).str.strip().str.zfill(2)
+        cont_mask = dgdf[dgdf["circulo"] <= "18"].to_crs(3763).dissolve()
 
     if year == 2026:
         gpkg_path = MAPAS_DIR / "freguesias2026.gpkg"
@@ -366,7 +383,7 @@ def build_year(year, simplify_freg=18, simplify_conc=35, simplify_dist=90):
             norm = normalize_layer(gdf, cont_path.name)
             
             cont_part = norm[norm["circulo"] <= "18"].to_crs(3763)
-            if year >= 2015 and cont_mask is not None:
+            if cont_mask is not None:
                 print(f"  [Clip] a cortar continente de {year}...")
                 cont_part = gpd.clip(cont_part, cont_mask)
             parts.append(cont_part)
