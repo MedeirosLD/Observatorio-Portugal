@@ -282,13 +282,14 @@ function renderResultsPanel() {
 
     if (STATE.currentElectionType === 'ar' && STATE.currentYear === '2024' && party === 'AD' && STATE.scope.level === 'national') {
       try {
-        const d30 = STATE.data?.AGG?.distrito?.['30'];
+        const votes30 = typeof MAP_LEVELS !== 'undefined' ? MAP_LEVELS.distrito.getVotes('30') : {};
+        const official30 = typeof MAP_LEVELS !== 'undefined' ? MAP_LEVELS.distrito.getOfficial('30') : {};
 
-        const mpVotes = d30?.votes?.['Madeira Primeiro'] || 0;
-        const mpSeats = showMandatos ? (d30?.mandatos_p?.['Madeira Primeiro'] || 0) : 0;
+        const mpVotes = votes30?.['Madeira Primeiro'] || 0;
+        const mpSeats = showMandatos ? (official30?.mandatos_p?.['Madeira Primeiro'] || 0) : 0;
 
-        const ppmVotes = d30?.votes?.['PPM'] || 0;
-        const ppmSeats = showMandatos ? (d30?.mandatos_p?.['PPM'] || 0) : 0;
+        const ppmVotes = votes30?.['PPM'] || 0;
+        const ppmSeats = showMandatos ? (official30?.mandatos_p?.['PPM'] || 0) : 0;
 
         const coalitionV = v - mpVotes - ppmVotes;
         const coalitionS = (seats || 0) - mpSeats - ppmSeats;
@@ -337,10 +338,11 @@ function renderResultsPanel() {
 
     if (STATE.currentYear === '2025' && party === 'AD' && STATE.scope.level === 'national') {
       try {
-        const d40 = STATE.data?.AGG?.distrito?.['40'];
+        const votes40 = typeof MAP_LEVELS !== 'undefined' ? MAP_LEVELS.distrito.getVotes('40') : {};
+        const official40 = typeof MAP_LEVELS !== 'undefined' ? MAP_LEVELS.distrito.getOfficial('40') : {};
 
-        const adaVotes = d40?.votes?.['AD Açores'] || 0;
-        const adaSeats = showMandatos ? (d40?.mandatos_p?.['AD Açores'] || 0) : 0;
+        const adaVotes = votes40?.['AD Açores'] || 0;
+        const adaSeats = showMandatos ? (official40?.mandatos_p?.['AD Açores'] || 0) : 0;
 
         const coalitionV = v - adaVotes;
         const coalitionS = (seats || 0) - adaSeats;

@@ -272,6 +272,46 @@ function getScopeData(scope = STATE.scope) {
         }
       });
       
+      // Agregar mandatos e mandatos_p para distritos ativos que pertençam ao filtro NUTS
+      let sumMandatos = 0;
+      const sumMandatosP = {};
+      const activeDistricts = new Set();
+      
+      if (typeof NUTS_DATA !== 'undefined') {
+        Object.keys(NUTS_DATA).forEach(dicoKey => {
+          if (window.isConcelhoInNuts && window.isConcelhoInNuts(dicoKey)) {
+            activeDistricts.add(dicoKey.slice(0, 2));
+          }
+        });
+      }
+      
+      if (level === 'distrito' && scope.key) {
+        // Se estamos focados num distrito específico sob o filtro NUTS, apenas contamos os mandatos desse distrito
+        const distEntry = d.AGG?.distrito?.[scope.key];
+        if (distEntry) {
+          if (typeof distEntry.mandatos === 'number') sumMandatos = distEntry.mandatos;
+          if (distEntry.mandatos_p) {
+            for (const [p, s] of Object.entries(distEntry.mandatos_p)) {
+              sumMandatosP[p] = s;
+            }
+          }
+        }
+      } else {
+        activeDistricts.forEach(distId => {
+          const distEntry = d.AGG?.distrito?.[distId];
+          if (distEntry) {
+            if (typeof distEntry.mandatos === 'number') {
+              sumMandatos += distEntry.mandatos;
+            }
+            if (distEntry.mandatos_p) {
+              for (const [p, s] of Object.entries(distEntry.mandatos_p)) {
+                sumMandatosP[p] = (sumMandatosP[p] || 0) + s;
+              }
+            }
+          }
+        });
+      }
+      
       const filterLabel = document.getElementById('selectNuts')?.options[document.getElementById('selectNuts').selectedIndex]?.text || 'Região';
       
       return {
@@ -280,7 +320,9 @@ function getScopeData(scope = STATE.scope) {
           inscritos: sumInsc,
           votantes: sumVot,
           brancos: sumBra,
-          nulos: sumNul
+          nulos: sumNul,
+          mandatos: sumMandatos,
+          mandatos_p: sumMandatosP
         },
         nome: `${scopeName} (${filterLabel})`,
         level
