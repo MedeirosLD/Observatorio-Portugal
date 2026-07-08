@@ -11,12 +11,50 @@ const MAP_LEVELS = {
       if (STATE.currentCirculo === 'E1' || STATE.currentCirculo === 'E2') {
         return STATE.data?.COUNTRIES?.[STATE.currentCirculo]?.[id]?.votes;
       }
+      if (STATE.currentNuts) {
+        const d = STATE.data;
+        if (!d) return {};
+        const matchingFreguesias = Object.keys(d.RESULTS || {}).filter(code => {
+          return code.slice(0, 2) === id && isConcelhoInNuts(code.slice(0, 4));
+        });
+        const votesSum = {};
+        matchingFreguesias.forEach(code => {
+          const votes = d.RESULTS[code] || {};
+          for (const [p, v] of Object.entries(votes)) {
+            votesSum[p] = (votesSum[p] || 0) + v;
+          }
+        });
+        return votesSum;
+      }
       return STATE.data?.AGG?.distrito?.[id]?.votes;
     },
     getName: (id) => CIRCULOS.get(id) || id,
     getOfficial: (id) => {
       if (STATE.currentCirculo === 'E1' || STATE.currentCirculo === 'E2') {
         return STATE.data?.COUNTRIES?.[STATE.currentCirculo]?.[id];
+      }
+      if (STATE.currentNuts) {
+        const d = STATE.data;
+        if (!d) return null;
+        const matchingFreguesias = Object.keys(d.RESULTS || {}).filter(code => {
+          return code.slice(0, 2) === id && isConcelhoInNuts(code.slice(0, 4));
+        });
+        let sumInsc = 0, sumVot = 0, sumBra = 0, sumNul = 0;
+        matchingFreguesias.forEach(code => {
+          const offVal = d.OFFICIAL_F?.[code];
+          if (offVal) {
+            sumInsc += offVal[0];
+            sumVot += offVal[1];
+            sumBra += offVal[2];
+            sumNul += offVal[3];
+          }
+        });
+        return {
+          inscritos: sumInsc,
+          votantes: sumVot,
+          brancos: sumBra,
+          nulos: sumNul
+        };
       }
       return STATE.data?.AGG?.distrito?.[id];
     }

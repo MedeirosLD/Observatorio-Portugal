@@ -88,6 +88,54 @@
             </select>
           </div>
 
+          <div class="ctrl" id="nutsFilterCtrl" style="margin-top: 6px;">
+            <label for="selectNuts">Região / NUTS / Áreas Met.</label>
+            <select id="selectNuts" class="select">
+              <option value="" selected>Sem filtro regional</option>
+              <optgroup label="NUTS 1">
+                <option value="n1:Continente">Continente</option>
+                <option value="n1:Região Autónoma dos Açores">Açores</option>
+                <option value="n1:Região Autónoma da Madeira">Madeira</option>
+              </optgroup>
+              <optgroup label="NUTS 2">
+                <option value="n2:Norte">Norte</option>
+                <option value="n2:Centro">Centro</option>
+                <option value="n2:Área Metropolitana de Lisboa">Área Metropolitana de Lisboa</option>
+                <option value="n2:Alentejo">Alentejo</option>
+                <option value="n2:Algarve">Algarve</option>
+                <option value="n2:Região Autónoma dos Açores">Região Autónoma dos Açores</option>
+                <option value="n2:Região Autónoma da Madeira">Região Autónoma da Madeira</option>
+              </optgroup>
+              <optgroup label="Áreas Metropolitanas">
+                <option value="am:AML">Área Metropolitana de Lisboa (AML)</option>
+                <option value="am:AMP">Área Metropolitana do Porto (AMP)</option>
+              </optgroup>
+              <optgroup label="NUTS 3">
+                <option value="n3:Alto Minho">Alto Minho</option>
+                <option value="n3:Cávado">Cávado</option>
+                <option value="n3:Ave">Ave</option>
+                <option value="n3:Alto Tâmega e Barroso">Alto Tâmega e Barroso</option>
+                <option value="n3:Terras de Trás-os-Montes">Terras de Trás-os-Montes</option>
+                <option value="n3:Douro">Douro</option>
+                <option value="n3:Tâmega e Sousa">Tâmega e Sousa</option>
+                <option value="n3:Região de Aveiro">Região de Aveiro</option>
+                <option value="n3:Região de Coimbra">Região de Coimbra</option>
+                <option value="n3:Região de Leiria">Região de Leiria</option>
+                <option value="n3:Oeste">Oeste</option>
+                <option value="n3:Beiras e Serra da Estrela">Beiras e Serra da Estrela</option>
+                <option value="n3:Beira Baixa">Beira Baixa</option>
+                <option value="n3:Médio Tejo">Médio Tejo</option>
+                <option value="n3:Lezíria do Tejo">Lezíria do Tejo</option>
+                <option value="n3:Grande Lisboa">Grande Lisboa</option>
+                <option value="n3:Península de Setúbal">Península de Setúbal</option>
+                <option value="n3:Alentejo Litoral">Alentejo Litoral</option>
+                <option value="n3:Alentejo Central">Alentejo Central</option>
+                <option value="n3:Alto Alentejo">Alto Alentejo</option>
+                <option value="n3:Baixo Alentejo">Baixo Alentejo</option>
+              </optgroup>
+            </select>
+          </div>
+
         </div>
 
         <div class="section" id="vizBox">
@@ -435,6 +483,7 @@
 
   <!-- SCRIPTS -->
   <script src="js/globals.js?v=20260706a"></script>
+  <script src="js/pt/nuts-data.js?v=20260708a"></script>
   <script src="js/cache.js?v=20260704a"></script>
   <script src="js/maplibre-compat.js?v=20260704a"></script>
   <script src="js/utils.js?v=20260704a"></script>

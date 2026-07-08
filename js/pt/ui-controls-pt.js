@@ -179,6 +179,9 @@ function updateElectionUiVisibility() {
   const isDiasporaHidden = isAu || isEe;
   if (btnEuropa) btnEuropa.style.display = isDiasporaHidden ? 'none' : '';
   if (btnMundo) btnMundo.style.display = isDiasporaHidden ? 'none' : '';
+
+  const nutsFilterCtrl = document.getElementById('nutsFilterCtrl');
+  if (nutsFilterCtrl) nutsFilterCtrl.style.display = isAu ? 'none' : '';
 }
 
 function syncVizModeChips() {
@@ -271,6 +274,12 @@ function setupControls() {
     } else {
       window.navigateToDistrito(circ, { focus: true });
     }
+  });
+
+  dom.selectNuts?.addEventListener('change', () => {
+    STATE.currentNuts = dom.selectNuts.value;
+    window.applyFiltersAndRedraw();
+    window.renderResultsPanel();
   });
 
   dom.mapLevelChips?.querySelectorAll('.chip-button').forEach((btn) => {

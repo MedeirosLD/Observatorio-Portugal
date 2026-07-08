@@ -31,6 +31,7 @@ async function init() {
 
   dom.selectYear = document.getElementById('selectYear');
   dom.selectCirculo = document.getElementById('selectCirculo');
+  dom.selectNuts = document.getElementById('selectNuts');
   dom.selectElectionType = document.getElementById('selectElectionType');
 
   dom.vizBox = document.getElementById('vizBox');

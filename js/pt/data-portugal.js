@@ -194,6 +194,107 @@ function getScopeData(scope = STATE.scope) {
     };
   }
 
+  if (STATE.currentNuts) {
+    const level = scope?.level || 'national';
+    let matchingFreguesias = [];
+    let scopeName = '';
+    
+    if (level === 'freguesia' && scope.key) {
+      const dico = scope.key.slice(0, 4);
+      if (window.isConcelhoInNuts && window.isConcelhoInNuts(dico)) {
+        const offVal = d.OFFICIAL_F?.[scope.key];
+        const official = offVal ? {
+          inscritos: offVal[0],
+          votantes: offVal[1],
+          brancos: offVal[2],
+          nulos: offVal[3]
+        } : null;
+        return {
+          votes: d.RESULTS[scope.key] || {},
+          official,
+          nome: d.NAMES?.[scope.key] || scope.key,
+          level
+        };
+      } else {
+        return {
+          votes: {},
+          official: null,
+          nome: d.NAMES?.[scope.key] || scope.key,
+          level
+        };
+      }
+    }
+    
+    if (level === 'concelho' && scope.key) {
+      if (window.isConcelhoInNuts && window.isConcelhoInNuts(scope.key)) {
+        const entry = d.AGG?.concelho?.[scope.key];
+        return {
+          votes: entry?.votes || {},
+          official: (entry && 'inscritos' in entry) ? entry : null,
+          nome: scope.nome || scope.key,
+          level
+        };
+      } else {
+        return {
+          votes: {},
+          official: null,
+          nome: scope.nome || scope.key,
+          level
+        };
+      }
+    }
+    
+    if (level === 'distrito' && scope.key) {
+      matchingFreguesias = Object.keys(d.RESULTS || {}).filter(code => {
+        const circ = code.slice(0, 2);
+        if (circ !== scope.key) return false;
+        const dico = code.slice(0, 4);
+        return window.isConcelhoInNuts && window.isConcelhoInNuts(dico);
+      });
+      scopeName = CIRCULOS.get(scope.key) || scope.key;
+    } else if (level === 'national') {
+      matchingFreguesias = Object.keys(d.RESULTS || {}).filter(code => {
+        const dico = code.slice(0, 4);
+        return window.isConcelhoInNuts && window.isConcelhoInNuts(dico);
+      });
+      scopeName = 'Portugal';
+    }
+    
+    if (matchingFreguesias.length > 0) {
+      let sumInsc = 0, sumVot = 0, sumBra = 0, sumNul = 0;
+      matchingFreguesias.forEach(code => {
+        const offVal = d.OFFICIAL_F?.[code];
+        if (offVal) {
+          sumInsc += offVal[0];
+          sumVot += offVal[1];
+          sumBra += offVal[2];
+          sumNul += offVal[3];
+        }
+      });
+      
+      const filterLabel = document.getElementById('selectNuts')?.options[document.getElementById('selectNuts').selectedIndex]?.text || 'Região';
+      
+      return {
+        votes: sumFreguesias(new Set(matchingFreguesias)),
+        official: {
+          inscritos: sumInsc,
+          votantes: sumVot,
+          brancos: sumBra,
+          nulos: sumNul
+        },
+        nome: `${scopeName} (${filterLabel})`,
+        level
+      };
+    } else {
+      return {
+        votes: {},
+        official: null,
+        nome: scopeName,
+        level
+      };
+    }
+  }
+
   const level = scope?.level || 'national';
   if (level === 'freguesia' && scope.key) {
     const offVal = d.OFFICIAL_F?.[scope.key];

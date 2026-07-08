@@ -414,6 +414,7 @@ const STATE = {
   auSubtype: 'cm',                     // 'cm' | 'am' | 'af'
   currentYear: '2025',
   currentCirculo: '',                  // '' = Portugal inteiro
+  currentNuts: '',                     // '' = sem filtro regional. Ex: 'n2:Norte', 'am:AML'
   scope: { level: 'national', key: null },  // national|distrito|concelho|freguesia
   mapLevel: 'distrito',                // 'distrito' | 'concelho' | 'freguesia'
   granularity: 'distrito',             // 'distrito' | 'concelho' | 'freguesia'
@@ -659,6 +660,29 @@ function groupAutarquicasVotes(votes, presidents, maiorias, mandatos_p, level, s
 }
 
 window.isFeatureDisabled = function(layerId, feature) {
+  if (STATE.currentNuts && STATE.currentElectionType !== 'au') {
+    let dico = null;
+    if (layerId === 'freguesias') {
+      const dicofre = feature.properties?.dicofre || feature.properties?.id;
+      if (dicofre) dico = String(dicofre).slice(0, 4);
+    } else if (layerId === 'concelhos') {
+      dico = feature.properties?.dico || feature.properties?.id;
+    } else if (layerId === 'distritos') {
+      const distCirc = feature.properties?.circulo || feature.properties?.id;
+      if (distCirc && typeof NUTS_DATA !== 'undefined') {
+        const hasMatch = Object.keys(NUTS_DATA).some(dicoKey => {
+          if (dicoKey.slice(0, 2) !== distCirc) return false;
+          return window.isConcelhoInNuts && window.isConcelhoInNuts(dicoKey);
+        });
+        if (!hasMatch) return true;
+      }
+    }
+    
+    if (dico && window.isConcelhoInNuts && !window.isConcelhoInNuts(dico)) {
+      return true;
+    }
+  }
+
   if (layerId === 'freguesias' && STATE.currentElectionType === 'au' && STATE.auSubtype === 'af') {
     const yearNum = parseInt(STATE.currentYear || '0', 10);
     if (yearNum <= 2009) {
@@ -673,3 +697,24 @@ window.isFeatureDisabled = function(layerId, feature) {
   }
   return false;
 };
+
+function isConcelhoInNuts(dico, nutsSelector = STATE.currentNuts) {
+  if (STATE.currentElectionType === 'au') return true; // Ignorar filtros em eleições autárquicas
+  if (!nutsSelector) return true;
+  const parts = nutsSelector.split(':');
+  if (parts.length < 2) return true;
+  const filterType = parts[0];
+  const filterVal = parts[1];
+  
+  const dicoStr = String(dico || '').padStart(4, '0');
+  const info = typeof NUTS_DATA !== 'undefined' ? NUTS_DATA[dicoStr] : null;
+  if (!info) return false;
+  
+  if (filterType === 'n1') return info.n1 === filterVal;
+  if (filterType === 'n2') return info.n2 === filterVal;
+  if (filterType === 'n3') return info.n3 === filterVal;
+  if (filterType === 'am') return info.am === filterVal;
+  return true;
+}
+
+window.isConcelhoInNuts = isConcelhoInNuts;
