@@ -473,7 +473,11 @@ async function navigateToNational({ focus = false } = {}) {
   
   syncMapLevel();
   if (focus) {
-    focusCountryOnMap(true);
+    if (STATE.currentNuts) {
+      focusNutsOnMap(STATE.currentNuts, true);
+    } else {
+      focusCountryOnMap(true);
+    }
   }
   applyFiltersAndRedraw();
 }
@@ -645,6 +649,34 @@ function syncMapLevel() {
   const geo = STATE.geo;
   if (!geo) return;
 
+  function filterFeaturesForNuts(feats, level) {
+    if (!STATE.currentNuts || STATE.currentElectionType === 'au') return feats;
+    if (!feats) return [];
+    return feats.filter(f => {
+      if (level === 'freguesia') {
+        const dicofre = f.properties?.dicofre || f.properties?.id;
+        if (!dicofre) return false;
+        return window.isConcelhoInNuts && window.isConcelhoInNuts(String(dicofre).slice(0, 4));
+      }
+      if (level === 'concelho') {
+        const dico = f.properties?.dico || f.properties?.id;
+        return window.isConcelhoInNuts && window.isConcelhoInNuts(dico);
+      }
+      if (level === 'distrito') {
+        const distCirc = f.properties?.circulo || f.properties?.id;
+        if (!distCirc) return false;
+        if (typeof NUTS_DATA !== 'undefined') {
+          return Object.keys(NUTS_DATA).some(dicoKey => {
+            if (dicoKey.slice(0, 2) !== distCirc) return false;
+            return window.isConcelhoInNuts && window.isConcelhoInNuts(dicoKey);
+          });
+        }
+        return false;
+      }
+      return true;
+    });
+  }
+
   if (map) {
     try {
       map.setFeatureState({ source: 'distritos-source', id: 0 }, { hover: false });
@@ -665,23 +697,23 @@ function syncMapLevel() {
   // Se estivermos na visão nacional (nenhum distrito selecionado)
   if (!STATE.currentCirculo) {
     if (STATE.granularity === 'distrito') {
-      STATE.distritosLayer?.setData(geo.distritos.features);
+      STATE.distritosLayer?.setData(filterFeaturesForNuts(geo.distritos.features, 'distrito'));
       STATE.concelhosLayer?.setData([]);
       STATE.freguesiasLayer?.setData([]);
       STATE.distritosOutlineLayer?.setData([]);
       STATE.concelhosOutlineLayer?.setData([]);
     } else if (STATE.granularity === 'concelho') {
       STATE.distritosLayer?.setData([]);
-      STATE.concelhosLayer?.setData(geo.concelhos.features);
+      STATE.concelhosLayer?.setData(filterFeaturesForNuts(geo.concelhos.features, 'concelho'));
       STATE.freguesiasLayer?.setData([]);
-      STATE.distritosOutlineLayer?.setData(geo.distritos.features.filter(f => f.properties?.circulo !== '30' && f.properties?.circulo !== '40')); // Contorno do distrito sobre os concelhos (menos ilhas)
+      STATE.distritosOutlineLayer?.setData(filterFeaturesForNuts(geo.distritos.features.filter(f => f.properties?.circulo !== '30' && f.properties?.circulo !== '40'), 'distrito')); // Contorno do distrito sobre os concelhos (menos ilhas)
       STATE.concelhosOutlineLayer?.setData([]);
     } else if (STATE.granularity === 'freguesia') {
       STATE.distritosLayer?.setData([]);
       STATE.concelhosLayer?.setData([]);
-      STATE.freguesiasLayer?.setData(geo.freguesias?.features || []);
-      STATE.distritosOutlineLayer?.setData(geo.distritos.features.filter(f => f.properties?.circulo !== '30' && f.properties?.circulo !== '40')); // Contorno do distrito sobre as freguesias (menos ilhas)
-      STATE.concelhosOutlineLayer?.setData(geo.concelhos.features); // Contorno do concelho sobre as freguesias
+      STATE.freguesiasLayer?.setData(filterFeaturesForNuts(geo.freguesias?.features || [], 'freguesia'));
+      STATE.distritosOutlineLayer?.setData(filterFeaturesForNuts(geo.distritos.features.filter(f => f.properties?.circulo !== '30' && f.properties?.circulo !== '40'), 'distrito')); // Contorno do distrito sobre as freguesias (menos ilhas)
+      STATE.concelhosOutlineLayer?.setData(filterFeaturesForNuts(geo.concelhos.features, 'concelho')); // Contorno do concelho sobre as freguesias
     }
     return;
   }
@@ -706,7 +738,7 @@ function syncMapLevel() {
       distritoFeatures = geo.distritos.features.filter(f => f.properties?.circulo !== STATE.currentCirculo);
     }
   }
-  STATE.distritosLayer?.setData(distritoFeatures);
+  STATE.distritosLayer?.setData(filterFeaturesForNuts(distritoFeatures, 'distrito'));
 
   // --- 2. Concelhos Layer ---
   let concelhoFeatures = [];
@@ -719,7 +751,7 @@ function syncMapLevel() {
       );
     }
   }
-  STATE.concelhosLayer?.setData(concelhoFeatures);
+  STATE.concelhosLayer?.setData(filterFeaturesForNuts(concelhoFeatures, 'concelho'));
 
   // --- 3. Freguesias Layer ---
   let freguesiaFeatures = [];
@@ -732,7 +764,7 @@ function syncMapLevel() {
       }
     }
   }
-  STATE.freguesiasLayer?.setData(freguesiaFeatures);
+  STATE.freguesiasLayer?.setData(filterFeaturesForNuts(freguesiaFeatures, 'freguesia'));
 
   // --- 4. Contornos (Outlines) ---
   let distOutlineFeats = [];
@@ -742,7 +774,7 @@ function syncMapLevel() {
       distOutlineFeats = geo.distritos.features.filter(f => f.properties?.circulo === STATE.currentCirculo);
     }
   }
-  STATE.distritosOutlineLayer?.setData(distOutlineFeats);
+  STATE.distritosOutlineLayer?.setData(filterFeaturesForNuts(distOutlineFeats, 'distrito'));
 
   let concOutlineFeats = [];
   if (STATE.mapLevel === 'freguesia') {
@@ -752,7 +784,7 @@ function syncMapLevel() {
       concOutlineFeats = geo.concelhos.features.filter(f => f.properties?.circulo === STATE.currentCirculo);
     }
   }
-  STATE.concelhosOutlineLayer?.setData(concOutlineFeats);
+  STATE.concelhosOutlineLayer?.setData(filterFeaturesForNuts(concOutlineFeats, 'concelho'));
 }
 
 function applyFiltersAndRedraw() {
@@ -798,6 +830,45 @@ function focusCirculoOnMap(circulo, animate = true) {
   if (!feature) return;
   const bounds = MLCompat.featureBounds(feature);
   if (bounds) MLCompat.fitMapToBounds(map, bounds, { padding: [40, 40], animate });
+}
+
+function focusNutsOnMap(nutsSelector = STATE.currentNuts, animate = true) {
+  if (!STATE.geo || !nutsSelector) return;
+  const level = STATE.mapLevel;
+  let matchingFeatures = [];
+  
+  if (level === 'freguesia') {
+    matchingFeatures = (STATE.geo.freguesias?.features || []).filter(f => {
+      const dicofre = f.properties?.dicofre;
+      if (!dicofre) return false;
+      return window.isConcelhoInNuts && window.isConcelhoInNuts(dicofre.slice(0, 4), nutsSelector);
+    });
+  } else if (level === 'concelho') {
+    matchingFeatures = (STATE.geo.concelhos?.features || []).filter(f => {
+      const dico = f.properties?.dico;
+      if (!dico) return false;
+      return window.isConcelhoInNuts && window.isConcelhoInNuts(dico, nutsSelector);
+    });
+  } else if (level === 'distrito') {
+    matchingFeatures = (STATE.geo.distritos?.features || []).filter(f => {
+      const distCirc = f.properties?.circulo;
+      if (!distCirc) return false;
+      if (typeof NUTS_DATA !== 'undefined') {
+        return Object.keys(NUTS_DATA).some(dicoKey => {
+          if (dicoKey.slice(0, 2) !== distCirc) return false;
+          return window.isConcelhoInNuts && window.isConcelhoInNuts(dicoKey, nutsSelector);
+        });
+      }
+      return false;
+    });
+  }
+  
+  if (matchingFeatures.length > 0) {
+    const bounds = MLCompat.featureCollectionBounds(matchingFeatures);
+    if (bounds) {
+      MLCompat.fitMapToBounds(map, bounds, { padding: [40, 40], animate });
+    }
+  }
 }
 
 function focusCountryOnMap(animate = false) {
@@ -916,5 +987,6 @@ window.navigateToDistrito = navigateToDistrito;
 window.navigateToConcelho = navigateToConcelho;
 window.focusCountryOnMap = focusCountryOnMap;
 window.focusCirculoOnMap = focusCirculoOnMap;
+window.focusNutsOnMap = focusNutsOnMap;
 window.syncMapLevel = syncMapLevel;
 window.syncMapLevelChips = syncMapLevelChips;

@@ -278,6 +278,16 @@ function setupControls() {
 
   dom.selectNuts?.addEventListener('change', () => {
     STATE.currentNuts = dom.selectNuts.value;
+    window.syncMapLevel();
+    if (STATE.currentNuts) {
+      window.focusNutsOnMap && window.focusNutsOnMap(STATE.currentNuts, true);
+    } else {
+      if (STATE.currentCirculo) {
+        window.focusCirculoOnMap && window.focusCirculoOnMap(STATE.currentCirculo, true);
+      } else {
+        window.focusCountryOnMap && window.focusCountryOnMap(true);
+      }
+    }
     window.applyFiltersAndRedraw();
     window.renderResultsPanel();
   });
