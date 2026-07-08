@@ -7,6 +7,9 @@
 .claude/
 .agents/
 
+# codebase-memory-mcp (installed to %LOCALAPPDATA%\Programs; keep installer out of git)
+/codebase-memory-mcp-ui-windows-amd64/
+
 # Python cache and environment directories
 __pycache__/
 *.pyc
