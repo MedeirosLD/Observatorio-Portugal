@@ -194,7 +194,7 @@ function getDynamicPartyColor(key) {
 }
 
 // Nomes por extenso (tooltip/painel; opcional)
-const PARTY_FULL_NAMES = {
+const PARTY_FULL_NAMES = new Proxy({
   'PS': 'Partido Socialista',
   'PSD': 'Partido Social Democrata',
   'AD': 'Aliança Democrática',
@@ -254,6 +254,7 @@ const PARTY_FULL_NAMES = {
   'POUS': 'Partido Operário de Unidade Socialista',
   'PPD': 'Partido Popular Democrático',
   'PPD/PSD': 'Partido Social Democrata',
+  'PPD/PSD.CDS-PP': 'Aliança Democrática',
   'PPM-MPT': 'PPM-MPT (Monárquicos / Terra)',
   'PPV': 'Portugal pro Vida',
   'PPV/CDC': 'PPV/CDC (Portugal pro Vida / Cidadania e Democracia Cristã)',
@@ -272,8 +273,37 @@ const PARTY_FULL_NAMES = {
   'VP': 'Volt Portugal',
   'ALIANCA ACORES': 'Aliança Açores',
   'PAF': 'Portugal à Frente',
-  'CDS-PP.PPM': 'Aliança Açores'
-};
+  'CDS-PP.PPM': 'Aliança Açores',
+  'FORCA PORTUGAL': 'Força Portugal',
+  'ALIANCA PORTUGAL': 'Aliança Portugal'
+}, {
+  get: function(target, prop) {
+    if (typeof prop === 'string') {
+      const year = String(STATE.currentYear || '');
+      const election = String(STATE.currentElectionType || '');
+      if (election === 'ee') {
+        if (year === '2004') {
+          if (prop === 'AD' || prop === 'PPD/PSD.CDS-PP') {
+            return 'Força Portugal';
+          }
+        } else if (year === '2014') {
+          if (prop === 'AD' || prop === 'PPD/PSD.CDS-PP') {
+            return 'Aliança Portugal';
+          }
+        }
+      }
+      if (year === '1975' || year === '1976') {
+        if (prop === 'PSD' || prop === 'PPD' || prop === 'PPD/PSD') {
+          return 'Partido Popular Democrático';
+        }
+        if (prop === 'CDS') {
+          return 'Partido do Centro Democrático Social';
+        }
+      }
+    }
+    return target[prop] || prop || '';
+  }
+});
 
 // Normaliza uma sigla para a chave de cor: remove acentos, aplica aliases de
 // coligações/afins e só depois remove pontos (B.E. -> BE, R.I.R. -> RIR).
@@ -286,6 +316,8 @@ const PARTY_KEY_ALIASES = new Map(Object.entries({
   'MADEIRA PRIMEIRO': 'AD',
   'AD ACORES': 'AD',
   'PAF': 'AD',
+  'FORCA PORTUGAL': 'AD',
+  'ALIANCA PORTUGAL': 'AD',
   'PCP-PEV': 'CDU',
   'APU': 'CDU',
   'FEPU': 'CDU',

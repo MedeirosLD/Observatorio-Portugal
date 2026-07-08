@@ -738,6 +738,46 @@ def build_year(year):
         except Exception as e:
             print(f"  AVISO: falha ao carregar estrangeiro complementar para {year} ({e})")
 
+    if year == 2002:
+        # Juntar B.E. e B.E.-UDP sob B.E.
+        if "B.E.-UDP" in parties:
+            parties.remove("B.E.-UDP")
+        if "B.E." not in parties:
+            parties.append("B.E.")
+
+        def merge_be_2002(entry):
+            if not entry: return
+            votes = entry.get("votes")
+            if votes:
+                votes["B.E."] = votes.get("B.E.", 0) + votes.get("B.E.-UDP", 0)
+                votes.pop("B.E.-UDP", None)
+            m_p = entry.get("mandatos_p")
+            if m_p:
+                m_p["B.E."] = m_p.get("B.E.", 0) + m_p.get("B.E.-UDP", 0)
+                m_p.pop("B.E.-UDP", None)
+
+        for f_code in results:
+            results[f_code]["B.E."] = results[f_code].get("B.E.", 0) + results[f_code].get("B.E.-UDP", 0)
+            results[f_code].pop("B.E.-UDP", None)
+
+        if official:
+            merge_be_2002(official.get("national"))
+            merge_be_2002(official.get("global"))
+            merge_be_2002(official.get("estrangeiro"))
+            if "distrito" in official:
+                for d_code, entry in official["distrito"].items():
+                    merge_be_2002(entry)
+            if "concelho" in official:
+                for c_code, entry in official["concelho"].items():
+                    merge_be_2002(entry)
+            if "freguesia" in official:
+                for f_code, entry in official["freguesia"].items():
+                    merge_be_2002(entry)
+            if "countries" in official:
+                for circ_key in official["countries"]:
+                    for c_name in official["countries"][circ_key]:
+                        merge_be_2002(official["countries"][circ_key][c_name])
+
     if year == 2015:
         # Renomear no parties
         if "PPD/PSD.CDS-PP" in parties:
