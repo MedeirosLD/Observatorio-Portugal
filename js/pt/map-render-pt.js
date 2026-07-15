@@ -1105,30 +1105,30 @@ function createSeatDonutSVG(code, totalSeats, mandatos_p) {
 
   let rings = [];
   if (N <= 8) {
-    rings = [ { rIn: 12, rOut: 18, count: N } ];
+    rings = [ { rIn: 17.5, rOut: 25, count: N } ];
   } else if (N <= 19) {
     const r1 = Math.round(N * 0.4);
     rings = [
-      { rIn: 12, rOut: 16.5, count: r1 },
-      { rIn: 18, rOut: 22.5, count: N - r1 }
+      { rIn: 17.5, rOut: 23, count: r1 },
+      { rIn: 25.5, rOut: 31, count: N - r1 }
     ];
   } else if (N <= 40) {
     const r1 = Math.round(N * 0.22);
     const r2 = Math.round(N * 0.35);
     rings = [
-      { rIn: 12, rOut: 16.5, count: r1 },
-      { rIn: 18, rOut: 22.5, count: r2 },
-      { rIn: 24, rOut: 28.5, count: N - r1 - r2 }
+      { rIn: 17.5, rOut: 23, count: r1 },
+      { rIn: 25.5, rOut: 31, count: r2 },
+      { rIn: 33.5, rOut: 39, count: N - r1 - r2 }
     ];
   } else {
     const r1 = Math.round(N * 0.15);
     const r2 = Math.round(N * 0.24);
     const r3 = Math.round(N * 0.28);
     rings = [
-      { rIn: 12, rOut: 16.5, count: r1 },
-      { rIn: 18, rOut: 22.5, count: r2 },
-      { rIn: 24, rOut: 28.5, count: r3 },
-      { rIn: 30, rOut: 34.5, count: N - r1 - r2 - r3 }
+      { rIn: 17.5, rOut: 23, count: r1 },
+      { rIn: 25.5, rOut: 31, count: r2 },
+      { rIn: 33.5, rOut: 39, count: r3 },
+      { rIn: 41.5, rOut: 47, count: N - r1 - r2 - r3 }
     ];
   }
 
@@ -1146,25 +1146,25 @@ function createSeatDonutSVG(code, totalSeats, mandatos_p) {
       const startAngle = j * dTheta - Math.PI / 2;
       const endAngle = (j + 1) * dTheta - Math.PI / 2;
       
-      const pathData = getSectorPath(40, 40, rIn, rOut, startAngle, endAngle);
+      const pathData = getSectorPath(55, 55, rIn, rOut, startAngle, endAngle);
       svgContent += `<path d="${pathData}" fill="${color}" stroke="#15151b" stroke-width="0.8" />`;
     }
   });
 
   const acronym = DISTRICT_ACRONYMS[code] || code;
   svgContent += `
-    <circle cx="40" cy="40" r="10" fill="#15151b" stroke="rgba(255,255,255,0.15)" stroke-width="0.7" />
-    <text x="40" y="38" text-anchor="middle" font-size="6.5px" font-family="sans-serif" font-weight="700" fill="#ffffff" dominant-baseline="middle">${acronym}</text>
-    <text x="40" y="45" text-anchor="middle" font-size="5.5px" font-family="sans-serif" font-weight="500" fill="#9999aa" dominant-baseline="middle">${N}</text>
+    <circle cx="55" cy="55" r="15" fill="#15151b" stroke="rgba(255,255,255,0.2)" stroke-width="0.8" />
+    <text x="55" y="52" text-anchor="middle" font-size="9.5px" font-family="sans-serif" font-weight="700" fill="#ffffff" dominant-baseline="middle">${acronym}</text>
+    <text x="55" y="63" text-anchor="middle" font-size="8.5px" font-family="sans-serif" font-weight="600" fill="#9999aa" dominant-baseline="middle">${N}</text>
   `;
 
   const div = document.createElement('div');
   div.className = 'seat-donut-marker';
-  div.style.width = '80px';
-  div.style.height = '80px';
+  div.style.width = '110px';
+  div.style.height = '110px';
   div.style.cursor = 'pointer';
   div.innerHTML = `
-    <svg width="80" height="80" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+    <svg width="110" height="110" viewBox="0 0 110 110" xmlns="http://www.w3.org/2000/svg">
       ${svgContent}
     </svg>
   `;
