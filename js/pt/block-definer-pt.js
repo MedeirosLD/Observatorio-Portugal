@@ -2,12 +2,23 @@
 // block-definer-pt.js — Custom Coalition / Block Definer for AR and Europeias
 // ============================================================================
 
-STATE.customBlocks = [];
+// Initialize from localStorage cache if present
+try {
+  const saved = localStorage.getItem('observatorio_custom_blocks');
+  STATE.customBlocks = saved ? JSON.parse(saved) : [];
+} catch (e) {
+  console.error("Error loading custom blocks cache", e);
+  STATE.customBlocks = [];
+}
+
+let modalCustomBlocksBackup = null;
 
 function openBlockDefinerModal() {
   if (!STATE.originalData) {
     STATE.originalData = JSON.parse(JSON.stringify(STATE.data));
   }
+  // Backup blocks in case they close/cancel without applying
+  modalCustomBlocksBackup = JSON.parse(JSON.stringify(STATE.customBlocks));
   document.getElementById('blockDefinerOverlay')?.classList.add('visible');
   renderBlockDefinerList();
 }
@@ -15,6 +26,11 @@ function openBlockDefinerModal() {
 function closeBlockDefinerModal(e) {
   if (e && e.target !== e.currentTarget && !e.target.classList.contains('info-close')) {
     return;
+  }
+  // Restore from backup
+  if (modalCustomBlocksBackup !== null) {
+    STATE.customBlocks = modalCustomBlocksBackup;
+    modalCustomBlocksBackup = null;
   }
   document.getElementById('blockDefinerOverlay')?.classList.remove('visible');
 }
@@ -141,6 +157,14 @@ function applyCustomBlocks() {
     names.add(block.name);
   }
 
+  // Save to localStorage
+  try {
+    localStorage.setItem('observatorio_custom_blocks', JSON.stringify(STATE.customBlocks));
+  } catch (e) {
+    console.error("Error saving custom blocks to cache", e);
+  }
+
+  modalCustomBlocksBackup = null; // Prevent revert on close
   applyCustomBlocksToData();
   applyFiltersAndRedraw();
   
@@ -148,17 +172,28 @@ function applyCustomBlocks() {
     populateVizPartySelect();
   }
 
-  closeBlockDefinerModal();
+  // Close modal
+  document.getElementById('blockDefinerOverlay')?.classList.remove('visible');
 }
 
 function clearCustomBlocks() {
   STATE.customBlocks = [];
+  modalCustomBlocksBackup = null;
+
+  try {
+    localStorage.removeItem('observatorio_custom_blocks');
+  } catch (e) {
+    console.error("Error clearing custom blocks cache", e);
+  }
+
   applyCustomBlocksToData();
   applyFiltersAndRedraw();
+  
   if (typeof populateVizPartySelect === 'function') {
     populateVizPartySelect();
   }
-  closeBlockDefinerModal();
+  
+  document.getElementById('blockDefinerOverlay')?.classList.remove('visible');
 }
 
 function calculateDhondt(votes, numSeats) {
@@ -222,12 +257,19 @@ function applyCustomBlocksToData() {
     });
   }
   
-  // 1. RESULTS
+  // 1. RESULTS (freguesias or concelhos depending on year)
   if (STATE.data.RESULTS) {
     Object.values(STATE.data.RESULTS).forEach(mergeVotes);
   }
   
-  // 2. AGG.distrito
+  // 2. AGG.concelho
+  if (STATE.data.AGG && STATE.data.AGG.concelho) {
+    Object.values(STATE.data.AGG.concelho).forEach(entry => {
+      mergeVotes(entry.votes);
+    });
+  }
+  
+  // 3. AGG.distrito
   if (STATE.data.AGG && STATE.data.AGG.distrito) {
     Object.entries(STATE.data.AGG.distrito).forEach(([code, entry]) => {
       mergeVotes(entry.votes);
@@ -237,19 +279,42 @@ function applyCustomBlocksToData() {
     });
   }
   
-  // 3. AGG.national
+  // 4. AGG.national
   if (STATE.data.AGG && STATE.data.AGG.national) {
     mergeVotes(STATE.data.AGG.national.votes);
-    const nationalMandatosP = {};
+  }
+  
+  // 5. METADATA.national
+  if (STATE.data.METADATA && STATE.data.METADATA.national) {
+    mergeVotes(STATE.data.METADATA.national.votes);
+  }
+  
+  // 6. METADATA.global
+  if (STATE.data.METADATA && STATE.data.METADATA.global) {
+    mergeVotes(STATE.data.METADATA.global.votes);
+  }
+  
+  // 7. Recalculate national/global seat distribution (sum of districts)
+  const nationalMandatosP = {};
+  if (STATE.data.AGG && STATE.data.AGG.distrito) {
     Object.values(STATE.data.AGG.distrito).forEach(d => {
       Object.entries(d.mandatos_p || {}).forEach(([p, s]) => {
         nationalMandatosP[p] = (nationalMandatosP[p] || 0) + s;
       });
     });
-    STATE.data.AGG.national.mandatos_p = nationalMandatosP;
   }
   
-  // 4. METADATA.parties
+  if (STATE.data.AGG && STATE.data.AGG.national) {
+    STATE.data.AGG.national.mandatos_p = nationalMandatosP;
+  }
+  if (STATE.data.METADATA && STATE.data.METADATA.national) {
+    STATE.data.METADATA.national.mandatos_p = nationalMandatosP;
+  }
+  if (STATE.data.METADATA && STATE.data.METADATA.global) {
+    STATE.data.METADATA.global.mandatos_p = nationalMandatosP;
+  }
+  
+  // 8. METADATA.parties
   if (STATE.data.METADATA && STATE.data.METADATA.parties) {
     blocks.forEach(block => {
       STATE.data.METADATA.parties[block.name] = block.name;
