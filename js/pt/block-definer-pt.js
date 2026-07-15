@@ -4,8 +4,16 @@
 
 // Initialize from localStorage cache if present
 try {
-  const saved = localStorage.getItem('observatorio_custom_blocks');
-  STATE.customBlocks = saved ? JSON.parse(saved) : [];
+  const modifiedFlag = localStorage.getItem('observatorio_custom_blocks_modified');
+  if (modifiedFlag === 'true') {
+    const saved = localStorage.getItem('observatorio_custom_blocks');
+    STATE.customBlocks = saved ? JSON.parse(saved) : [];
+  } else if (modifiedFlag === 'false') {
+    STATE.customBlocks = [];
+  } else {
+    // Will be initialized dynamically per year using defaults in applyCustomBlocksToData
+    STATE.customBlocks = [];
+  }
 } catch (e) {
   console.error("Error loading custom blocks cache", e);
   STATE.customBlocks = [];
@@ -17,6 +25,13 @@ function openBlockDefinerModal() {
   if (!STATE.originalData) {
     STATE.originalData = JSON.parse(JSON.stringify(STATE.data));
   }
+  
+  // If not modified yet and empty, generate defaults for the current year
+  const modifiedFlag = localStorage.getItem('observatorio_custom_blocks_modified');
+  if (modifiedFlag === null && STATE.customBlocks.length === 0) {
+    STATE.customBlocks = generateDefaultBlocksForYear();
+  }
+
   // Backup blocks in case they close/cancel without applying
   modalCustomBlocksBackup = JSON.parse(JSON.stringify(STATE.customBlocks));
   document.getElementById('blockDefinerOverlay')?.classList.add('visible');
@@ -60,9 +75,7 @@ function renderBlockDefinerList() {
     // Generate checkboxes for each party
     let partiesHtml = '';
     originalParties.forEach(p => {
-      // Check if this party is selected in this block
       const checked = block.parties.includes(p) ? 'checked' : '';
-      // Disable if this party is selected in ANOTHER block
       let disabled = '';
       const otherBlock = STATE.customBlocks.find((b, bIdx) => bIdx !== idx && b.parties.includes(p));
       if (otherBlock) {
@@ -157,8 +170,9 @@ function applyCustomBlocks() {
     names.add(block.name);
   }
 
-  // Save to localStorage
+  // Save to localStorage and set modified flag to true
   try {
+    localStorage.setItem('observatorio_custom_blocks_modified', 'true');
     localStorage.setItem('observatorio_custom_blocks', JSON.stringify(STATE.customBlocks));
   } catch (e) {
     console.error("Error saving custom blocks to cache", e);
@@ -172,7 +186,6 @@ function applyCustomBlocks() {
     populateVizPartySelect();
   }
 
-  // Close modal
   document.getElementById('blockDefinerOverlay')?.classList.remove('visible');
 }
 
@@ -181,6 +194,7 @@ function clearCustomBlocks() {
   modalCustomBlocksBackup = null;
 
   try {
+    localStorage.setItem('observatorio_custom_blocks_modified', 'false');
     localStorage.removeItem('observatorio_custom_blocks');
   } catch (e) {
     console.error("Error clearing custom blocks cache", e);
@@ -194,6 +208,57 @@ function clearCustomBlocks() {
   }
   
   document.getElementById('blockDefinerOverlay')?.classList.remove('visible');
+}
+
+function restoreDefaultBlocks() {
+  localStorage.removeItem('observatorio_custom_blocks_modified');
+  localStorage.removeItem('observatorio_custom_blocks');
+  STATE.customBlocks = generateDefaultBlocksForYear();
+  renderBlockDefinerList();
+}
+
+function generateDefaultBlocksForYear() {
+  if (!STATE.originalData) {
+    STATE.originalData = JSON.parse(JSON.stringify(STATE.data));
+  }
+  const originalParties = Object.keys(STATE.originalData?.METADATA?.parties || {});
+  
+  const leftList = [
+    'PS', 'BE', 'B.E.', 'L', 'LIVRE', 'PCP-PEV', 'CDU', 'PCP', 'PEV', 'APU',
+    'PAN', 'JPP', 'PCTP/MRPP', 'PCTP', 'MRPP', 'VP', 'VOLT', 'UEDS', 'UDP',
+    'PSR', 'POUS', 'OCMLP', 'LCI', 'PCP(M-L)', 'PCP (M-L)', 'AOC', 'MUT', 'FSP',
+    'FSP/LUAR', 'LUAR', 'PRD', 'POUS/PST', 'PST', 'FER', 'MAS', 'LIVRE/GE', 'L/TDA',
+    'MDP/CDE', 'MDP'
+  ];
+  
+  const rightList = [
+    'AD', 'CH', 'CHEGA', 'IL', 'ADN', 'PPM', 'E', 'ERGUE-TE', 'ND', 'NOVA DIREITA',
+    'PLS', 'PSD', 'PPD/PSD', 'CDS-PP', 'CDS', 'CDS-PP.PPM', 'PPD/PSD.CDS-PP',
+    'PPD/PSD.CDS-PP.PPM', 'PPD/PSD.CDS', 'PNR', 'PND', 'MPT.P.P.M.', 'P.P.M.',
+    'MEP', 'M.E.P.', 'MEP/MPT', 'PDC', 'MIRN/PDP', 'CDS-PP/PPM', 'AD AÇORES', 
+    'AD AÇORES (PSD/CDS/PPM)', 'MADEIRA PRIMEIRO', 'AD AÇORES'
+  ];
+
+  const leftGroup = [];
+  const rightGroup = [];
+  const sincGroup = [];
+
+  originalParties.forEach(p => {
+    const upper = p.toUpperCase().trim();
+    if (leftList.some(item => upper === item || upper.includes(item))) {
+      leftGroup.push(p);
+    } else if (rightList.some(item => upper === item || upper.includes(item))) {
+      rightGroup.push(p);
+    } else {
+      sincGroup.push(p);
+    }
+  });
+
+  return [
+    { name: 'Direitas', color: '#00e5ff', parties: rightGroup },
+    { name: 'Esquerdas', color: '#ff3366', parties: leftGroup },
+    { name: 'Sincreticos', color: '#ffcc00', parties: sincGroup }
+  ];
 }
 
 function calculateDhondt(votes, numSeats) {
@@ -231,6 +296,12 @@ function applyCustomBlocksToData() {
   
   if (!STATE.originalData) {
     STATE.originalData = JSON.parse(JSON.stringify(STATE.data));
+  }
+  
+  // If not modified yet, dynamically generate and load default blocks for this year
+  const modifiedFlag = localStorage.getItem('observatorio_custom_blocks_modified');
+  if (modifiedFlag === null) {
+    STATE.customBlocks = generateDefaultBlocksForYear();
   }
   
   STATE.data = JSON.parse(JSON.stringify(STATE.originalData));
