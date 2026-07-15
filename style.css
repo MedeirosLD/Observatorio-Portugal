@@ -4878,3 +4878,38 @@ body:not(.mode-3d) .maplibregl-ctrl-compass {
 }
 
 
+
+/* ---------- eleitos: número de mandatos clicável + linha expandida ---------- */
+.eleitos-seats-btn {
+  background: none;
+  border: none;
+  padding: 0 2px;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  border-bottom: 1px dotted var(--muted);
+  transition: color 0.15s, border-color 0.15s;
+}
+.eleitos-seats-btn:hover,
+.eleitos-seats-btn.open {
+  color: var(--accent-2);
+  border-bottom-color: var(--accent-2);
+}
+/* o badge de presidente clicável mantém o seu próprio estilo */
+span.eleitos-seats-btn,
+span.eleitos-seats-btn:hover,
+span.eleitos-seats-btn.open {
+  border-bottom: none;
+  color: inherit;
+}
+span.eleitos-seats-btn:hover {
+  filter: brightness(1.25);
+}
+.eleitos-party-row .eleitos-scroll {
+  max-height: 320px;
+  overflow-y: auto;
+  text-align: left;
+  padding-right: 4px;
+}

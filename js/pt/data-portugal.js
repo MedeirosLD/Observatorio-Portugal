@@ -207,7 +207,9 @@ function getScopeData(scope = STATE.scope) {
           inscritos: offVal[0],
           votantes: offVal[1],
           brancos: offVal[2],
-          nulos: offVal[3]
+          nulos: offVal[3],
+          mandatos: offVal[4],
+          mandatos_p: offVal[5]
         } : null;
         return {
           votes: d.RESULTS[scope.key] || {},
@@ -344,7 +346,9 @@ function getScopeData(scope = STATE.scope) {
       inscritos: offVal[0],
       votantes: offVal[1],
       brancos: offVal[2],
-      nulos: offVal[3]
+      nulos: offVal[3],
+      mandatos: offVal[4],
+      mandatos_p: offVal[5]
     } : null;
     return {
       votes: d.RESULTS[scope.key] || {},

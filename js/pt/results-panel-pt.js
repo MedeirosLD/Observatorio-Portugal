@@ -509,7 +509,11 @@ function renderResultsPanel() {
             ${breakdownHtml}
           </div>
         </td>
-        ${showMandatos ? `<td class="align-center cand-votes-text" style="text-align: center; font-variant-numeric: tabular-nums; font-size: 0.82rem; font-weight: 500; vertical-align: middle;">${seatsHtml}</td>` : ''}
+        ${showMandatos ? `<td class="align-center cand-votes-text" style="text-align: center; font-variant-numeric: tabular-nums; font-size: 0.82rem; font-weight: 500; vertical-align: middle;">${
+    (seats && typeof eleitosSeatsClickable === 'function' && eleitosSeatsClickable())
+      ? `<button type="button" class="eleitos-seats-btn" data-party="${safeParty}" title="Ver os eleitos de ${safeParty}">${seatsHtml}</button>`
+      : seatsHtml
+  }</td>` : ''}
         <td class="align-right" style="text-align: right; vertical-align: middle; padding-right: 8px;">
           <div style="display: flex; flex-direction: column; align-items: flex-end; justify-content: center; gap: 1px;">
             <span class="cand-votes-text" style="font-size: 0.82rem; font-variant-numeric: tabular-nums; font-weight: 500; color: var(--text-sec);">${fmtInt(v)}</span>
@@ -616,6 +620,10 @@ function renderResultsPanel() {
   }
 
   dom.resultsMetrics.innerHTML = metricsHtml;
+
+  // listagem dos eleitos (Diário da República), injetada assincronamente
+  // a listagem dos eleitos abre a partir do número de mandatos na tabela
+  // (eleitos-portugal.js: .eleitos-seats-btn -> toggleEleitosPartyRow)
 
   if (typeof triggerMobileResultsNotification === 'function') triggerMobileResultsNotification();
 }
@@ -861,6 +869,11 @@ document.addEventListener('click', (e) => {
 
 // delegação de eventos para a composição da coligação PàF (2015)
 document.addEventListener('click', (e) => {
+  const seatsBtn = e.target.closest('.eleitos-seats-btn');
+  if (seatsBtn && typeof toggleEleitosPartyRow === 'function') {
+    toggleEleitosPartyRow(seatsBtn);
+    return;
+  }
   const toggleBtn = e.target.closest('.paf-breakdown-toggle');
   if (toggleBtn) {
     const row = toggleBtn.closest('tr');
@@ -1194,12 +1207,20 @@ function renderAutarquicasPanel(scopeData) {
       let seatsHtml = seats ? fmtInt(seats) : '—';
       
       const isWinner = (idx === 0);
+      // em anos sem coluna de mandatos, o badge do vencedor serve de
+      // acesso à listagem de eleitos (quando disponível)
+      const badgeClickable = isWinner && !item.isGroup &&
+        typeof eleitosSeatsClickable === 'function' && eleitosSeatsClickable();
+      const badgeAttrs = badgeClickable
+        ? ` role="button" tabindex="0" data-party="${escapeAttribute(item.party)}" title="Ver os eleitos de ${escapeAttribute(item.party)}"`
+        : '';
+      const badgeCursor = badgeClickable ? ' cursor: pointer;' : '';
       let badgeHtml = '';
       if (isWinner) {
         if (subType === 'cm' && level === 'concelho') {
-          badgeHtml = `<span class="badge winner-badge" style="background: rgba(245, 158, 11, 0.12); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); font-size: 0.58rem; padding: 2px 6px; border-radius: 4px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; margin-top: 3px; display: inline-block;">Presidente da Câmara</span>`;
+          badgeHtml = `<span class="badge winner-badge${badgeClickable ? ' eleitos-seats-btn' : ''}"${badgeAttrs} style="background: rgba(245, 158, 11, 0.12); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); font-size: 0.58rem; padding: 2px 6px; border-radius: 4px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; margin-top: 3px; display: inline-block;${badgeCursor}">Presidente da Câmara</span>`;
         } else if (subType === 'af' && level === 'freguesia') {
-          badgeHtml = `<span class="badge winner-badge" style="background: rgba(16, 185, 129, 0.12); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); font-size: 0.58rem; padding: 2px 6px; border-radius: 4px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; margin-top: 3px; display: inline-block;">Presidente da Junta</span>`;
+          badgeHtml = `<span class="badge winner-badge${badgeClickable ? ' eleitos-seats-btn' : ''}"${badgeAttrs} style="background: rgba(16, 185, 129, 0.12); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); font-size: 0.58rem; padding: 2px 6px; border-radius: 4px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; margin-top: 3px; display: inline-block;${badgeCursor}">Presidente da Junta</span>`;
         }
       }
       
@@ -1230,7 +1251,11 @@ function renderAutarquicasPanel(scopeData) {
               ${fullName ? `<span style="font-size: 0.65rem; color: var(--muted); line-height: 1.2;">${escapeHtml(fullName)}</span>` : ''}
             </div>
           </td>
-          ${showMandatos ? `<td class="align-center cand-votes-text" style="text-align: center; font-variant-numeric: tabular-nums; font-size: 0.82rem; font-weight: 500; vertical-align: middle;">${seatsHtml}</td>` : ''}
+          ${showMandatos ? `<td class="align-center cand-votes-text" style="text-align: center; font-variant-numeric: tabular-nums; font-size: 0.82rem; font-weight: 500; vertical-align: middle;">${
+    (seats && !item.isGroup && typeof eleitosSeatsClickable === 'function' && eleitosSeatsClickable())
+      ? `<button type="button" class="eleitos-seats-btn" data-party="${escapeAttribute(item.party)}" title="Ver os eleitos de ${escapeAttribute(item.party)}">${seatsHtml}</button>`
+      : seatsHtml
+  }</td>` : ''}
           <td class="align-right" style="text-align: right; vertical-align: middle; padding-right: 8px;">
             <div style="display: flex; flex-direction: column; align-items: flex-end; justify-content: center; gap: 1px;">
               <span class="cand-votes-text" style="font-size: 0.82rem; font-variant-numeric: tabular-nums; font-weight: 500; color: var(--text-sec);">${fmtInt(v)}</span>
@@ -1239,7 +1264,7 @@ function renderAutarquicasPanel(scopeData) {
           </td>
         </tr>
       `;
-      
+
       if (item.isGroup) {
         let membersRows = '';
         item.members.forEach(member => {
@@ -1335,13 +1360,8 @@ function renderAutarquicasPanel(scopeData) {
     metricsHtml += makeCard('Brancos', `${fmtInt(brancos)}${votantes > 0 ? ` <span style="font-size: 0.72rem; color: var(--muted); font-weight: 500; display: inline-block; margin-left: 2px;">(${fmtPct(brancos / votantes)})</span>` : ''}`);
     metricsHtml += makeCard('Nulos', `${fmtInt(nulos)}${votantes > 0 ? ` <span style="font-size: 0.72rem; color: var(--muted); font-weight: 500; display: inline-block; margin-left: 2px;">(${fmtPct(nulos / votantes)})</span>` : ''}`);
     
-    let mandatosTotal = 0;
-    if (level === 'national') {
-      mandatosTotal = official.mandatos;
-    } else if (level === 'distrito' || level === 'concelho') {
-      mandatosTotal = official.mandatos_total;
-    }
-    
+    const mandatosTotal = official.mandatos;
+
     if (mandatosTotal) {
       metricsHtml += makeCard('Total Mandatos', fmtInt(ensureNumber(mandatosTotal)));
     }
@@ -1349,6 +1369,10 @@ function renderAutarquicasPanel(scopeData) {
   
   metricsHtml += '</div>';
   dom.resultsMetrics.innerHTML = metricsHtml;
+
+  // listagem dos eleitos autárquicos (Diário da República), injetada assincronamente
+  // a listagem dos eleitos abre a partir do número de mandatos na tabela
+  // (eleitos-portugal.js: .eleitos-seats-btn -> toggleEleitosPartyRow)
 }
 
 

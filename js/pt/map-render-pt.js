@@ -246,14 +246,30 @@ function getFeatureStyle(level, feature) {
         inFocus = (id === activeKey);
       } else if (level === 'freguesia') {
         const dico = feature.properties?.dico || id.substring(0, 4);
-        inFocus = (dico === activeKey);
+        let allowedActiveKeys = [activeKey];
+        if ((STATE.currentYear === '1997' || STATE.currentYear === '1993') && STATE.currentElectionType === 'au') {
+          if (activeKey === '1107') {
+            allowedActiveKeys.push('1116');
+          } else if (activeKey === '0308') {
+            allowedActiveKeys.push('0314');
+          } else if (activeKey === '1314') {
+            allowedActiveKeys.push('1318');
+          }
+        }
+        inFocus = allowedActiveKeys.includes(dico);
       }
     } else if (activeLevel === 'freguesia') {
       if (level === 'distrito') {
         inFocus = false;
       } else if (level === 'concelho') {
         const conc = STATE.scope.concelho || activeKey.substring(0, 4);
-        inFocus = (id === conc);
+        let allowed = [conc];
+        if ((STATE.currentYear === '1997' || STATE.currentYear === '1993') && STATE.currentElectionType === 'au') {
+          if (conc === '1116') allowed.push('1107');
+          if (conc === '0314') allowed.push('0308');
+          if (conc === '1318') allowed.push('1314');
+        }
+        inFocus = allowed.includes(id);
       } else if (level === 'freguesia') {
         inFocus = (id === activeKey);
       }
@@ -758,7 +774,17 @@ function syncMapLevel() {
   if (STATE.mapLevel === 'freguesia') {
     if (geo.freguesias?.features) {
       if (selectedConcelhoIdForFreg) {
-        freguesiaFeatures = geo.freguesias.features.filter(f => f.properties?.dicofre?.slice(0, 4) === selectedConcelhoIdForFreg);
+        let allowedDicos = [selectedConcelhoIdForFreg];
+        if ((STATE.currentYear === '1997' || STATE.currentYear === '1993') && STATE.currentElectionType === 'au') {
+          if (selectedConcelhoIdForFreg === '1107') {
+            allowedDicos.push('1116');
+          } else if (selectedConcelhoIdForFreg === '0308') {
+            allowedDicos.push('0314');
+          } else if (selectedConcelhoIdForFreg === '1314') {
+            allowedDicos.push('1318');
+          }
+        }
+        freguesiaFeatures = geo.freguesias.features.filter(f => allowedDicos.includes(f.properties?.dicofre?.slice(0, 4)));
       } else {
         freguesiaFeatures = geo.freguesias.features.filter(f => f.properties?.circulo === STATE.currentCirculo);
       }

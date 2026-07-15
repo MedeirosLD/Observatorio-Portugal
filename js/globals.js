@@ -8,15 +8,18 @@ const DATA_BASE_URL = 'dados/';
 // ====== CÍRCULOS ELEITORAIS ======
 // Chave = 2 primeiros dígitos do DICOFRE (30/40 agregam Madeira 31-32 e
 // Açores 41-49). E1/E2 são os círculos da emigração (sem geometria no mapa).
+// XM/XC/XE são os círculos especiais de 1975 (Macau, Moçambique, Emigração),
+// substituídos por E1/E2 a partir de 1976.
 const CIRCULOS = new Map([
   ['01', 'Aveiro'], ['02', 'Beja'], ['03', 'Braga'], ['04', 'Bragança'],
   ['05', 'Castelo Branco'], ['06', 'Coimbra'], ['07', 'Évora'], ['08', 'Faro'],
   ['09', 'Guarda'], ['10', 'Leiria'], ['11', 'Lisboa'], ['12', 'Portalegre'],
   ['13', 'Porto'], ['14', 'Santarém'], ['15', 'Setúbal'], ['16', 'Viana do Castelo'],
   ['17', 'Vila Real'], ['18', 'Viseu'], ['30', 'Madeira'], ['40', 'Açores'],
-  ['E1', 'Europa'], ['E2', 'Fora da Europa']
+  ['E1', 'Europa'], ['E2', 'Fora da Europa'],
+  ['XM', 'Macau'], ['XC', 'Moçambique'], ['XE', 'Emigração']
 ]);
-const CIRCULOS_SEM_GEOMETRIA = new Set(['E1', 'E2']);
+const CIRCULOS_SEM_GEOMETRIA = new Set(['E1', 'E2', 'XM', 'XC', 'XE']);
 
 function circuloFromDicofre(dicofre) {
   const dt = String(dicofre || '').slice(0, 2);
@@ -94,7 +97,7 @@ const AU_YEARS = [
 ];
 const AU_MAP_YEAR = {
   '1976': '1976', '1979': '1979', '1982': '1983', '1985': '1985',
-  '1989': '1991', '1993': '1995', '1997': '1999', '2001': '2002',
+  '1989': '1991', '1993': '1993', '1997': '1997', '2001': '2002',
   '2005': '2005', '2009': '2009', '2013': '2015', '2017': '2019',
   '2021': '2022', '2025': '2026'
 };

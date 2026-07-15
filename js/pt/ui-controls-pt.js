@@ -12,6 +12,7 @@ async function loadCurrentYear() {
     const bundle = await loadYearData(STATE.currentYear);
     STATE.data = bundle.data;
     STATE.geo = bundle.geo;
+    updateCirculoShortcutsForYear();
 
     // modo desempenho: revalidar o partido no novo ano
     if (currentVizMode === 'desempenho' && STATE.vizParty) {
@@ -174,14 +175,37 @@ function updateElectionUiVisibility() {
   const auSubtypeCtrl = document.getElementById('auSubtypeCtrl');
   if (auSubtypeCtrl) auSubtypeCtrl.style.display = isAu ? '' : 'none';
 
-  const btnEuropa = document.getElementById('btnShortcutEuropa');
-  const btnMundo = document.getElementById('btnShortcutMundo');
   const isDiasporaHidden = isAu || isEe;
-  if (btnEuropa) btnEuropa.style.display = isDiasporaHidden ? 'none' : '';
-  if (btnMundo) btnMundo.style.display = isDiasporaHidden ? 'none' : '';
+  DIASPORA_SHORTCUT_IDS.forEach((id) => {
+    const btn = document.getElementById(id);
+    if (btn) btn.style.display = isDiasporaHidden ? 'none' : '';
+  });
+  if (!isDiasporaHidden) updateCirculoShortcutsForYear();
 
   const nutsFilterCtrl = document.getElementById('nutsFilterCtrl');
   if (nutsFilterCtrl) nutsFilterCtrl.style.display = isAu ? 'none' : '';
+}
+
+// Mapa botão -> chave de círculo, para os círculos sem geometria (emigração).
+const DIASPORA_SHORTCUT_IDS = ['btnShortcutEuropa', 'btnShortcutMundo',
+  'btnShortcutMacau', 'btnShortcutMocambique', 'btnShortcutEmigracao'];
+const DIASPORA_SHORTCUT_CIRCULO = {
+  btnShortcutEuropa: 'E1', btnShortcutMundo: 'E2',
+  btnShortcutMacau: 'XM', btnShortcutMocambique: 'XC', btnShortcutEmigracao: 'XE',
+};
+
+// Dentro dos círculos da emigração, só mostra os botões cujo círculo exista nos
+// dados do ano carregado (ex.: 1975 só tem XM/XC/XE; 1976+ só tem E1/E2).
+function updateCirculoShortcutsForYear() {
+  const isDiasporaHidden = STATE.currentElectionType === 'au' || STATE.currentElectionType === 'ee';
+  if (isDiasporaHidden) return;
+  const distrito = STATE.data?.AGG?.distrito;
+  DIASPORA_SHORTCUT_IDS.forEach((id) => {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    const circ = DIASPORA_SHORTCUT_CIRCULO[id];
+    btn.style.display = distrito?.[circ] ? '' : 'none';
+  });
 }
 
 function syncVizModeChips() {
