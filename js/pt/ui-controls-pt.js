@@ -180,7 +180,7 @@ function updateElectionUiVisibility() {
   if (seatDonuts) seatDonuts.style.display = (elType === 'ar') ? '' : 'none';
   
   const blocksDefiner = document.getElementById('blocksDefinerCtrl');
-  if (blocksDefiner) blocksDefiner.style.display = (elType === 'ar' || elType === 'europeias') ? '' : 'none';
+  if (blocksDefiner) blocksDefiner.style.display = (elType === 'ar' || elType === 'ee') ? '' : 'none';
   
   const auSubtypeCtrl = document.getElementById('auSubtypeCtrl');
   if (auSubtypeCtrl) auSubtypeCtrl.style.display = isAu ? '' : 'none';

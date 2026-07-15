@@ -1,5 +1,5 @@
 // ============================================================================
-// block-definer-pt.js — Custom Coalition / Block Definer for AR and Europeias
+// block-definer-pt.js — Custom Coalition / Block Definer for AR and Europeias (ee)
 // ============================================================================
 
 // Initialize from localStorage cache if present
@@ -24,11 +24,6 @@ function openBlockDefinerModal() {
     STATE.originalData = JSON.parse(JSON.stringify(STATE.data));
   }
   
-  // If empty, generate defaults for the current year in the modal list
-  if (STATE.customBlocks.length === 0) {
-    STATE.customBlocks = generateDefaultBlocksForYear();
-  }
-
   // Backup blocks in case they close/cancel without applying
   modalCustomBlocksBackup = JSON.parse(JSON.stringify(STATE.customBlocks));
   document.getElementById('blockDefinerOverlay')?.classList.add('visible');
@@ -207,65 +202,6 @@ function clearCustomBlocks() {
   document.getElementById('blockDefinerOverlay')?.classList.remove('visible');
 }
 
-function restoreDefaultBlocks() {
-  STATE.customBlocks = generateDefaultBlocksForYear();
-  try {
-    localStorage.setItem('observatorio_custom_blocks_modified', 'true');
-    localStorage.setItem('observatorio_custom_blocks', JSON.stringify(STATE.customBlocks));
-  } catch (e) {
-    console.error("Error saving default blocks", e);
-  }
-  renderBlockDefinerList();
-}
-
-function generateDefaultBlocksForYear() {
-  if (!STATE.originalData) {
-    STATE.originalData = JSON.parse(JSON.stringify(STATE.data));
-  }
-  const originalParties = Object.keys(STATE.originalData?.METADATA?.parties || {});
-  
-  const leftList = [
-    'PS', 'BE', 'B.E.', 'L', 'LIVRE', 'PCP-PEV', 'CDU', 'PCP', 'PEV', 'APU',
-    'PAN', 'JPP', 'PCTP/MRPP', 'PCTP', 'MRPP', 'VP', 'VOLT', 'VOLT PORTUGAL', 'UEDS', 'UDP',
-    'PSR', 'POUS', 'OCMLP', 'LCI', 'PCP(M-L)', 'PCP (M-L)', 'AOC', 'MUT', 'FSP',
-    'FSP/LUAR', 'LUAR', 'PRD', 'POUS/PST', 'PST', 'FER', 'MAS', 'LIVRE/GE', 'L/TDA',
-    'MDP/CDE', 'MDP'
-  ];
-  
-  const rightList = [
-    'AD', 'CH', 'CHEGA', 'IL', 'INICIATIVA LIBERAL', 'ADN', 'PPM', 'E', 'ERGUE-TE', 'ND', 'NOVA DIREITA',
-    'PLS', 'PSD', 'PPD/PSD', 'CDS-PP', 'CDS', 'CDS-PP.PPM', 'PPD/PSD.CDS-PP',
-    'PPD/PSD.CDS-PP.PPM', 'PPD/PSD.CDS', 'PNR', 'PND', 'MPT.P.P.M.', 'P.P.M.',
-    'MEP', 'M.E.P.', 'MEP/MPT', 'PDC', 'MIRN/PDP', 'CDS-PP/PPM', 'AD AÇORES', 
-    'AD AÇORES (PSD/CDS/PPM)', 'MADEIRA PRIMEIRO', 'AD AÇORES'
-  ];
-
-  const leftGroup = [];
-  const rightGroup = [];
-  const sincGroup = [];
-
-  originalParties.forEach(p => {
-    const upper = p.toUpperCase().trim();
-    if (leftList.includes(upper)) {
-      leftGroup.push(p);
-    } else if (rightList.includes(upper)) {
-      rightGroup.push(p);
-    } else if (upper.startsWith('AD ') || upper.startsWith('AD-') || upper.startsWith('MADEIRA PRIMEIRO')) {
-      rightGroup.push(p);
-    } else if (upper.startsWith('PPD/PSD') || upper.startsWith('CDS-PP')) {
-      rightGroup.push(p);
-    } else {
-      sincGroup.push(p);
-    }
-  });
-
-  return [
-    { name: 'Direitas', color: '#00e5ff', parties: rightGroup },
-    { name: 'Esquerdas', color: '#ff3366', parties: leftGroup },
-    { name: 'Sincreticos', color: '#ffcc00', parties: sincGroup }
-  ];
-}
-
 function calculateDhondt(votes, numSeats) {
   if (numSeats <= 0) return {};
   const quotients = [];
@@ -295,7 +231,7 @@ function calculateDhondt(votes, numSeats) {
 }
 
 function applyCustomBlocksToData() {
-  if (STATE.currentElectionType !== 'ar' && STATE.currentElectionType !== 'europeias') {
+  if (STATE.currentElectionType !== 'ar' && STATE.currentElectionType !== 'ee') {
     return;
   }
   
