@@ -8,10 +8,8 @@ try {
   if (modifiedFlag === 'true') {
     const saved = localStorage.getItem('observatorio_custom_blocks');
     STATE.customBlocks = saved ? JSON.parse(saved) : [];
-  } else if (modifiedFlag === 'false') {
-    STATE.customBlocks = [];
   } else {
-    // Will be initialized dynamically per year using defaults in applyCustomBlocksToData
+    // Default to empty (no blocks) if null or false
     STATE.customBlocks = [];
   }
 } catch (e) {
@@ -26,9 +24,8 @@ function openBlockDefinerModal() {
     STATE.originalData = JSON.parse(JSON.stringify(STATE.data));
   }
   
-  // If not modified yet and empty, generate defaults for the current year
-  const modifiedFlag = localStorage.getItem('observatorio_custom_blocks_modified');
-  if (modifiedFlag === null && STATE.customBlocks.length === 0) {
+  // If empty, generate defaults for the current year in the modal list
+  if (STATE.customBlocks.length === 0) {
     STATE.customBlocks = generateDefaultBlocksForYear();
   }
 
@@ -211,9 +208,13 @@ function clearCustomBlocks() {
 }
 
 function restoreDefaultBlocks() {
-  localStorage.removeItem('observatorio_custom_blocks_modified');
-  localStorage.removeItem('observatorio_custom_blocks');
   STATE.customBlocks = generateDefaultBlocksForYear();
+  try {
+    localStorage.setItem('observatorio_custom_blocks_modified', 'true');
+    localStorage.setItem('observatorio_custom_blocks', JSON.stringify(STATE.customBlocks));
+  } catch (e) {
+    console.error("Error saving default blocks", e);
+  }
   renderBlockDefinerList();
 }
 
@@ -225,14 +226,14 @@ function generateDefaultBlocksForYear() {
   
   const leftList = [
     'PS', 'BE', 'B.E.', 'L', 'LIVRE', 'PCP-PEV', 'CDU', 'PCP', 'PEV', 'APU',
-    'PAN', 'JPP', 'PCTP/MRPP', 'PCTP', 'MRPP', 'VP', 'VOLT', 'UEDS', 'UDP',
+    'PAN', 'JPP', 'PCTP/MRPP', 'PCTP', 'MRPP', 'VP', 'VOLT', 'VOLT PORTUGAL', 'UEDS', 'UDP',
     'PSR', 'POUS', 'OCMLP', 'LCI', 'PCP(M-L)', 'PCP (M-L)', 'AOC', 'MUT', 'FSP',
     'FSP/LUAR', 'LUAR', 'PRD', 'POUS/PST', 'PST', 'FER', 'MAS', 'LIVRE/GE', 'L/TDA',
     'MDP/CDE', 'MDP'
   ];
   
   const rightList = [
-    'AD', 'CH', 'CHEGA', 'IL', 'ADN', 'PPM', 'E', 'ERGUE-TE', 'ND', 'NOVA DIREITA',
+    'AD', 'CH', 'CHEGA', 'IL', 'INICIATIVA LIBERAL', 'ADN', 'PPM', 'E', 'ERGUE-TE', 'ND', 'NOVA DIREITA',
     'PLS', 'PSD', 'PPD/PSD', 'CDS-PP', 'CDS', 'CDS-PP.PPM', 'PPD/PSD.CDS-PP',
     'PPD/PSD.CDS-PP.PPM', 'PPD/PSD.CDS', 'PNR', 'PND', 'MPT.P.P.M.', 'P.P.M.',
     'MEP', 'M.E.P.', 'MEP/MPT', 'PDC', 'MIRN/PDP', 'CDS-PP/PPM', 'AD AÇORES', 
@@ -245,9 +246,13 @@ function generateDefaultBlocksForYear() {
 
   originalParties.forEach(p => {
     const upper = p.toUpperCase().trim();
-    if (leftList.some(item => upper === item || upper.includes(item))) {
+    if (leftList.includes(upper)) {
       leftGroup.push(p);
-    } else if (rightList.some(item => upper === item || upper.includes(item))) {
+    } else if (rightList.includes(upper)) {
+      rightGroup.push(p);
+    } else if (upper.startsWith('AD ') || upper.startsWith('AD-') || upper.startsWith('MADEIRA PRIMEIRO')) {
+      rightGroup.push(p);
+    } else if (upper.startsWith('PPD/PSD') || upper.startsWith('CDS-PP')) {
       rightGroup.push(p);
     } else {
       sincGroup.push(p);
@@ -298,10 +303,10 @@ function applyCustomBlocksToData() {
     STATE.originalData = JSON.parse(JSON.stringify(STATE.data));
   }
   
-  // If not modified yet, dynamically generate and load default blocks for this year
+  // If not modified yet, default to empty (no blocks)
   const modifiedFlag = localStorage.getItem('observatorio_custom_blocks_modified');
   if (modifiedFlag === null) {
-    STATE.customBlocks = generateDefaultBlocksForYear();
+    STATE.customBlocks = [];
   }
   
   STATE.data = JSON.parse(JSON.stringify(STATE.originalData));
