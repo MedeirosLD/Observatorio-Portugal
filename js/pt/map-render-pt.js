@@ -1044,9 +1044,9 @@ function getSeatMarkerCoordinate(code, feature) {
   const manualCentroids = {
     "01": [-8.60, 40.64], // Aveiro
     "02": [-7.95, 38.01], // Beja
-    "03": [-8.42, 41.56], // Braga
-    "04": [-6.76, 41.81], // Bragança
-    "05": [-7.49, 39.82], // Castelo Branco
+    "03": [-8.15, 41.56], // Braga
+    "04": [-6.95, 41.45], // Bragança
+    "05": [-7.75, 39.70], // Castelo Branco
     "06": [-8.41, 40.21], // Coimbra
     "07": [-7.91, 38.57], // Évora
     "08": [-7.93, 37.15], // Faro
@@ -1057,8 +1057,8 @@ function getSeatMarkerCoordinate(code, feature) {
     "13": [-8.35, 41.20], // Porto
     "14": [-8.48, 39.40], // Santarém
     "15": [-8.60, 38.20], // Setúbal
-    "16": [-8.58, 41.78], // Viana do Castelo
-    "17": [-7.65, 41.50], // Vila Real
+    "16": [-8.58, 41.70], // Viana do Castelo
+    "17": [-7.65, 41.35], // Vila Real
     "18": [-7.90, 40.80], // Viseu
     "30": [-16.96, 32.72], // Madeira
     "40": [-27.22, 38.57], // Açores
