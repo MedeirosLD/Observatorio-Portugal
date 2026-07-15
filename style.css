@@ -4913,3 +4913,14 @@ span.eleitos-seats-btn:hover {
   text-align: left;
   padding-right: 4px;
 }
+
+/* ---------- seat-donut-marker for proportional seat cartogram ---------- */
+.seat-donut-marker {
+  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.seat-donut-marker:hover {
+  transform: scale(1.22);
+}
+.seat-donut-marker svg {
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.65));
+}

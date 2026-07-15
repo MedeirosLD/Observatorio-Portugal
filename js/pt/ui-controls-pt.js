@@ -172,6 +172,9 @@ function updateElectionUiVisibility() {
   const dhondt = document.getElementById('btnExplainRules');
   if (dhondt) dhondt.closest('.ctrl').style.display = (elType === 'ar' || isEe) ? '' : 'none';
   
+  const seatDonuts = document.getElementById('seatDonutsToggleCtrl');
+  if (seatDonuts) seatDonuts.style.display = (elType === 'ar') ? '' : 'none';
+  
   const auSubtypeCtrl = document.getElementById('auSubtypeCtrl');
   if (auSubtypeCtrl) auSubtypeCtrl.style.display = isAu ? '' : 'none';
 
@@ -424,6 +427,12 @@ function setupControls() {
   document.getElementById('btnToggleExtrusion')?.addEventListener('click', () => {
     STATE.extrusionEnabled = !STATE.extrusionEnabled;
     document.getElementById('btnToggleExtrusion')?.classList.toggle('active', STATE.extrusionEnabled);
+    applyFiltersAndRedraw();
+  });
+
+  document.getElementById('btnToggleSeatDonuts')?.addEventListener('click', () => {
+    STATE.showSeatDonuts = !STATE.showSeatDonuts;
+    document.getElementById('btnToggleSeatDonuts')?.classList.toggle('active', STATE.showSeatDonuts);
     applyFiltersAndRedraw();
   });
 

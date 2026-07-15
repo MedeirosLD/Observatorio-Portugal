@@ -424,6 +424,7 @@ const STATE = {
   vizParty: null,                      // partido no modo desempenho
   performanceStats: null,              // { minPct, maxPct } do partido no ano
   extrusionEnabled: false,
+  showSeatDonuts: false,
   isLoadingDataset: false,
   isFilterAggregationActive: false,
   data: null,                          // ar_{ano}.json carregado

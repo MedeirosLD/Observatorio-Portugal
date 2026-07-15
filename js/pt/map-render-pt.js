@@ -831,6 +831,9 @@ function applyFiltersAndRedraw() {
   if (typeof window.syncShortcutButtons === 'function') {
     window.syncShortcutButtons();
   }
+  if (typeof renderSeatMarkers === 'function') {
+    renderSeatMarkers();
+  }
 }
 
 function refreshMapStylesAndTooltips() {
@@ -1002,6 +1005,211 @@ function selectFreguesiasInPixelBox(pixelBox) {
   }
 }
 
+// ---------- MODO PROPORCIONAL (SEAT DONUTS) ----------
+let activeSeatMarkers = [];
+
+const DISTRICT_ACRONYMS = {
+  "01": "AVR", "02": "BJA", "03": "BRG", "04": "BGC",
+  "05": "CBA", "06": "CBR", "07": "EVR", "08": "FAR",
+  "09": "GRD", "10": "LRA", "11": "LIS", "12": "PTG",
+  "13": "PRT", "14": "STR", "15": "STB", "16": "VCT",
+  "17": "VRL", "18": "VIS", "30": "MAD", "40": "AZR"
+};
+
+function clearSeatMarkers() {
+  activeSeatMarkers.forEach(m => m.remove());
+  activeSeatMarkers = [];
+}
+
+function getFeatureCentroid(feature) {
+  if (!feature || !feature.geometry) return null;
+  let totalX = 0, totalY = 0, count = 0;
+  function processCoords(coords) {
+    if (Array.isArray(coords[0])) {
+      coords.forEach(processCoords);
+    } else {
+      totalX += coords[0];
+      totalY += coords[1];
+      count++;
+    }
+  }
+  processCoords(feature.geometry.coordinates);
+  if (count > 0) {
+    return [totalX / count, totalY / count];
+  }
+  return null;
+}
+
+function getSeatMarkerCoordinate(code, feature) {
+  const manualCentroids = {
+    "01": [-8.60, 40.64], // Aveiro
+    "02": [-7.95, 38.01], // Beja
+    "03": [-8.42, 41.56], // Braga
+    "04": [-6.76, 41.81], // Bragança
+    "05": [-7.49, 39.82], // Castelo Branco
+    "06": [-8.41, 40.21], // Coimbra
+    "07": [-7.91, 38.57], // Évora
+    "08": [-7.93, 37.15], // Faro
+    "09": [-7.27, 40.54], // Guarda
+    "10": [-8.75, 39.74], // Leiria
+    "11": [-9.15, 38.95], // Lisboa
+    "12": [-7.43, 39.29], // Portalegre
+    "13": [-8.35, 41.20], // Porto
+    "14": [-8.48, 39.40], // Santarém
+    "15": [-8.60, 38.20], // Setúbal
+    "16": [-8.58, 41.78], // Viana do Castelo
+    "17": [-7.65, 41.50], // Vila Real
+    "18": [-7.90, 40.80], // Viseu
+    "30": [-16.96, 32.72], // Madeira
+    "40": [-27.22, 38.57], // Açores
+  };
+  if (manualCentroids[code]) {
+    return manualCentroids[code];
+  }
+  return getFeatureCentroid(feature);
+}
+
+function getSectorPath(x, y, rIn, rOut, startAngle, endAngle) {
+  const x1_out = (x + rOut * Math.cos(startAngle)).toFixed(3);
+  const y1_out = (y + rOut * Math.sin(startAngle)).toFixed(3);
+  const x2_out = (x + rOut * Math.cos(endAngle)).toFixed(3);
+  const y2_out = (y + rOut * Math.sin(endAngle)).toFixed(3);
+  
+  const x1_in = (x + rIn * Math.cos(startAngle)).toFixed(3);
+  const y1_in = (y + rIn * Math.sin(startAngle)).toFixed(3);
+  const x2_in = (x + rIn * Math.cos(endAngle)).toFixed(3);
+  const y2_in = (y + rIn * Math.sin(endAngle)).toFixed(3);
+  
+  return `M ${x1_out} ${y1_out} ` +
+         `A ${rOut} ${rOut} 0 0 1 ${x2_out} ${y2_out} ` +
+         `L ${x2_in} ${y2_in} ` +
+         `A ${rIn} ${rIn} 0 0 0 ${x1_in} ${y1_in} ` +
+         `Z`;
+}
+
+function createSeatDonutSVG(code, totalSeats, mandatos_p) {
+  const sortedParties = Object.entries(mandatos_p)
+    .filter(([party, seats]) => seats > 0)
+    .sort((a, b) => b[1] - a[1]);
+  
+  const colors = [];
+  sortedParties.forEach(([party, seats]) => {
+    const color = getResolvedPartyColor(party) || '#999';
+    for (let i = 0; i < seats; i++) {
+      colors.push(color);
+    }
+  });
+
+  const N = colors.length;
+  if (N <= 0) return null;
+
+  let rings = [];
+  if (N <= 8) {
+    rings = [ { rIn: 12, rOut: 18, count: N } ];
+  } else if (N <= 19) {
+    const r1 = Math.round(N * 0.4);
+    rings = [
+      { rIn: 12, rOut: 16.5, count: r1 },
+      { rIn: 18, rOut: 22.5, count: N - r1 }
+    ];
+  } else if (N <= 40) {
+    const r1 = Math.round(N * 0.22);
+    const r2 = Math.round(N * 0.35);
+    rings = [
+      { rIn: 12, rOut: 16.5, count: r1 },
+      { rIn: 18, rOut: 22.5, count: r2 },
+      { rIn: 24, rOut: 28.5, count: N - r1 - r2 }
+    ];
+  } else {
+    const r1 = Math.round(N * 0.15);
+    const r2 = Math.round(N * 0.24);
+    const r3 = Math.round(N * 0.28);
+    rings = [
+      { rIn: 12, rOut: 16.5, count: r1 },
+      { rIn: 18, rOut: 22.5, count: r2 },
+      { rIn: 24, rOut: 28.5, count: r3 },
+      { rIn: 30, rOut: 34.5, count: N - r1 - r2 - r3 }
+    ];
+  }
+
+  let svgContent = '';
+  let colorIdx = 0;
+  
+  rings.forEach(ring => {
+    const M = ring.count;
+    const rIn = ring.rIn;
+    const rOut = ring.rOut;
+    const dTheta = (2 * Math.PI) / M;
+    
+    for (let j = 0; j < M; j++) {
+      const color = colors[colorIdx++] || '#999';
+      const startAngle = j * dTheta - Math.PI / 2;
+      const endAngle = (j + 1) * dTheta - Math.PI / 2;
+      
+      const pathData = getSectorPath(40, 40, rIn, rOut, startAngle, endAngle);
+      svgContent += `<path d="${pathData}" fill="${color}" stroke="#15151b" stroke-width="0.8" />`;
+    }
+  });
+
+  const acronym = DISTRICT_ACRONYMS[code] || code;
+  svgContent += `
+    <circle cx="40" cy="40" r="10" fill="#15151b" stroke="rgba(255,255,255,0.15)" stroke-width="0.7" />
+    <text x="40" y="38" text-anchor="middle" font-size="6.5px" font-family="sans-serif" font-weight="700" fill="#ffffff" dominant-baseline="middle">${acronym}</text>
+    <text x="40" y="45" text-anchor="middle" font-size="5.5px" font-family="sans-serif" font-weight="500" fill="#9999aa" dominant-baseline="middle">${N}</text>
+  `;
+
+  const div = document.createElement('div');
+  div.className = 'seat-donut-marker';
+  div.style.width = '80px';
+  div.style.height = '80px';
+  div.style.cursor = 'pointer';
+  div.innerHTML = `
+    <svg width="80" height="80" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+      ${svgContent}
+    </svg>
+  `;
+
+  div.addEventListener('click', (e) => {
+    e.stopPropagation();
+    window.navigateToDistrito(code, { focus: true });
+  });
+
+  return div;
+}
+
+function renderSeatMarkers() {
+  clearSeatMarkers();
+  if (!STATE.showSeatDonuts) return;
+  if (STATE.currentElectionType !== 'ar') return;
+  if (STATE.mapLevel !== 'distrito' && STATE.scope.level !== 'national') return;
+  if (!STATE.geo || !STATE.geo.distritos) return;
+  
+  STATE.geo.distritos.features.forEach(feature => {
+    const code = feature.properties?.circulo;
+    if (!code) return;
+    if (code === 'E1' || code === 'E2') return;
+    
+    const coord = getSeatMarkerCoordinate(code, feature);
+    if (!coord) return;
+    
+    const votesEntry = STATE.data?.AGG?.distrito?.[code];
+    if (!votesEntry) return;
+    
+    const mandatos_p = votesEntry.mandatos_p || {};
+    const totalMandatos = votesEntry.mandatos || 0;
+    if (totalMandatos <= 0) return;
+    
+    const el = createSeatDonutSVG(code, totalMandatos, mandatos_p);
+    if (!el) return;
+    
+    const marker = new maplibregl.Marker({ element: el })
+      .setLngLat(coord)
+      .addTo(map);
+      
+    activeSeatMarkers.push(marker);
+  });
+}
+
 // Exports globais
 window.applyFiltersAndRedraw = applyFiltersAndRedraw;
 window.refreshMapStylesAndTooltips = refreshMapStylesAndTooltips;
@@ -1016,3 +1224,5 @@ window.focusCirculoOnMap = focusCirculoOnMap;
 window.focusNutsOnMap = focusNutsOnMap;
 window.syncMapLevel = syncMapLevel;
 window.syncMapLevelChips = syncMapLevelChips;
+window.renderSeatMarkers = renderSeatMarkers;
+window.clearSeatMarkers = clearSeatMarkers;
