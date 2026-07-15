@@ -393,8 +393,9 @@ def build_year(year, simplify_freg=18, simplify_conc=35, simplify_dist=90):
         ilhas_part = norm[norm["circulo"] >= "30"].to_crs(3763)
         parts.append(ilhas_part)
     else:
-        cont_path = find_year_shapefile(MAPAS_DIR / "continente freguesias", year)
-        ilhas_path = find_year_shapefile(MAPAS_DIR / "madeira e açores freguesias", year)
+        src_year = 1995 if year == 1993 else (1999 if year == 1997 else year)
+        cont_path = find_year_shapefile(MAPAS_DIR / "continente freguesias", src_year)
+        ilhas_path = find_year_shapefile(MAPAS_DIR / "madeira e açores freguesias", src_year)
         if cont_path:
             gdf, enc = read_shapefile(cont_path)
             print(f"  continente: {cont_path.name} ({len(gdf)} rows, crs={gdf.crs.name if gdf.crs else 'NONE'}"
@@ -493,6 +494,24 @@ def build_year(year, simplify_freg=18, simplify_conc=35, simplify_dist=90):
     # com tolerância maior — as fronteiras entre concelhos/distritos vizinhos ficam
     # idênticas (sem linhas grossas) e os ficheiros ficam leves.
     freg["dico"] = freg["dicofre"].str[:4]
+    if year in (1993, 1997):
+        freg_to_mother_conc = {
+            "1116": "1107",  # Odivelas -> Loures
+            "0314": "0308",  # Vizela -> Guimarães
+            "1318": "1314"   # Trofa -> Santo Tirso
+        }
+        mother_names = {
+            "1107": "Loures",
+            "0308": "Guimarães",
+            "1314": "Santo Tirso"
+        }
+        for idx, row in freg.iterrows():
+            d = row["dico"]
+            if d in freg_to_mother_conc:
+                m = freg_to_mother_conc[d]
+                freg.at[idx, "dico"] = m
+                freg.at[idx, "concelho"] = mother_names[m]
+
     conc = freg.dissolve(by="dico", as_index=False, aggfunc="first")[
         ["dico", "concelho", "circulo", "geometry"]]
     conc["geometry"] = conc.geometry.make_valid()

@@ -21,9 +21,11 @@ from collections import defaultdict
 import pandas as pd
 
 from common import (MAPAS_DIR, RESULTADOS_DIR, RAW_DIR, OUT_DIR, YEARS, norm_dicofre,
-                    circulo_from_dicofre, is_freguesia_code)
+                    circulo_from_dicofre, is_freguesia_code, OLD_CONC_TO_MODERN,
+                    strip_accents_upper)
 from party_aliases import globais_party_to_certo
 from build_maps import find_year_shapefile
+from ar_circulos_extra import MANUAL_CIRCLE_DATA
 
 # Prefixos de distrito ANTIGO usados nos resultados de ilhas até 2005:
 # 19 = Angra do Heroísmo, 20 = Horta, 21 = Ponta Delgada (Açores), 22 = Funchal (Madeira).
@@ -50,11 +52,70 @@ def load_island_crosswalk(year):
             g = gpd.read_file(shp)
             if "junção_D" in g.columns and "DICOFRE" in g.columns:
                 for old, new in zip(g["junção_D"], g["DICOFRE"]):
-                    o, n = norm_dicofre(old), norm_dicofre(new)
+                    if old is None or new is None:
+                        continue
+                    old_s = str(old).strip()
+                    if old_s.endswith(".0"):
+                        old_s = old_s[:-2]
+                    o = old_s.zfill(6)
+                    n = norm_dicofre(new)
                     if o and n:
+                        # Corrigir typos e colisões de nomes nos shapefiles de 2002/2005
+                        if o == "220305" and n == "460304":
+                            cw["220305"] = "310305"
+                            cw["200704"] = "460304"
+                            continue
+                        if o == "200704" and n == "310305":
+                            continue
+                        if o == "220401" and n == "310401":
+                            cw["220901"] = "310401"
+                        if o == "190201" and n == "310102":
+                            cw["190201"] = "450101"
+                            continue
+                        if o == "220102" and n == "450101":
+                            cw["220102"] = "310102"
+                            continue
+                        if o == "200603" and n == "311002":
+                            cw["200603"] = "480203"
+                            continue
+                        if o == "221102" and n == "480203":
+                            cw["221102"] = "311002"
+                            continue
+                        if o == "210206" and n == "310903":
+                            cw["210206"] = "420207"
+                            continue
+                        if o == "221003" and n == "420207":
+                            cw["221003"] = "310903"
+                            continue
                         cw[o] = n
         except Exception as e:
             print(f"  AVISO: falha a ler crosswalk de ilhas {src_year} ({e})")
+            
+    # Fallback mappings for old island codes that are unresolved in older shapefiles (1975-1995)
+    fallback_mappings = {
+        "190119": "430110",
+        "200406": "460105",
+        "210105": "420102",
+        "210207": "420206",
+        "210321": "420305",
+        "210322": "420319",
+        "210513": "420504",
+        "210514": "420514",
+        "210605": "420603",
+        "221006": "310906",
+        # Novos fallbacks para 2006
+        "210208": "420208",
+        "210209": "420209",
+        "210210": "420210",
+        "210323": "420323",
+        "210324": "420324",
+        "210325": "420325",
+        "210606": "420606"
+    }
+    for o_code, n_code in fallback_mappings.items():
+        if o_code not in cw:
+            cw[o_code] = n_code
+            
     _ISLAND_CROSSWALK_CACHE[year] = cw
     return cw
 
@@ -74,9 +135,9 @@ RAW_FILES = {
     1975: "AC1975.xls",
 }
 
-DISTRITO_CODE_TO_KEY = {"300000": "30", "310000": "30", "320000": "30", "000030": "30",
-                        "400000": "40", "410000": "40", "000040": "40",
-                        "800000": "E1", "900000": "E2", "000081": "E1", "000082": "E2"}
+DISTRITO_CODE_TO_KEY = {"300000": "30", "310000": "30", "320000": "30", "000030": "30", "220000": "30",
+                        "400000": "40", "410000": "40", "000040": "40", "190000": "40",
+                        "800000": "E1", "900000": "E2", "000081": "E1", "000082": "E2", "810000": "E1", "820000": "E2"}
 
 
 def to_int(v):
@@ -143,10 +204,19 @@ def load_certo(year):
             name_col_local = name_col if name_col in cols_local else cols_local[1]
 
         for row in df_to_proc.itertuples(index=False):
-            code = norm_dicofre(row[0])
-            # Remapear código de ilha antigo -> DICOFRE moderno (para casar com o mapa).
-            if code and code[:2] in OLD_ISLAND_PREFIXES and code in island_cw:
-                code = island_cw[code]
+            raw_code = str(row[0]).strip()
+            if raw_code.endswith(".0"):
+                raw_code = raw_code[:-2]
+            code_raw = raw_code.zfill(6)
+            if code_raw[:2] in OLD_ISLAND_PREFIXES:
+                if code_raw in island_cw:
+                    code = island_cw[code_raw]
+                else:
+                    if not code_raw.endswith("00"):
+                        print(f"  AVISO: código de ilha não resolvido em load_certo ({year}): {code_raw} ({row[cols_local.index(name_col_local)] if name_col_local else ''})")
+                    code = norm_dicofre(row[0])
+            else:
+                code = norm_dicofre(row[0])
             if not is_freguesia_code(code):
                 continue
             votes = {}
@@ -249,11 +319,28 @@ def parse_globais_sheet(df_raw, year):
         groups.append((name, i_votes, i_mand))
         j = k
 
+    # Pré-scan da coluna de códigos
+    pad_right = False
+    for r in rows[h + 1:]:
+        if r and r[0] is not None:
+            s_code = str(r[0]).strip()
+            if s_code.endswith(".0"):
+                s_code = s_code[:-2]
+            if len(s_code) == 5 and s_code.startswith("0") and s_code.isdigit():
+                pad_right = True
+                break
+
     out = {}
     for r in rows[h + 1:]:
         raw_code = r[0]
         if raw_code is None:
             continue
+        if pad_right:
+            s_code = str(raw_code).strip()
+            if s_code.endswith(".0"):
+                s_code = s_code[:-2]
+            if len(s_code) == 5 and s_code.isdigit():
+                raw_code = s_code + "0"
         code = norm_dicofre(raw_code)
         # aceita numéricos (agregados/concelhos/distritos) e alfanuméricos
         # (freguesias de Barcelos '0302FA'..'0302FH' na sheet Freguesia)
@@ -310,11 +397,46 @@ def load_globais_modern(year):
         if key is None and code.endswith("0000") and 1 <= int(code[:2]) <= 18:
             key = code[:2]
         if key:
-            dist[key] = entry
-    # círculos Europa / Fora da Europa vêm da sheet País
-    for code, key in (("800000", "E1"), ("900000", "E2")):
-        if code in sheets.get("pais", {}):
-            dist[key] = sheets["pais"][code]
+            if key in dist:
+                accumulate_official(dist[key], entry)
+            else:
+                dist[key] = entry
+
+    # Círculos Europa / Fora da Europa
+    global_sheet = sheets.get("global", {})
+    if year == 2011:
+        if "810000" in global_sheet:
+            if "E1" in dist:
+                accumulate_official(dist["E1"], global_sheet["810000"])
+            else:
+                dist["E1"] = global_sheet["810000"]
+        if "820000" in global_sheet:
+            if "E2" in dist:
+                accumulate_official(dist["E2"], global_sheet["820000"])
+            else:
+                dist["E2"] = global_sheet["820000"]
+    elif year == 2015:
+        for code, entry in global_sheet.items():
+            name_norm = strip_accents_upper(entry.get("name", ""))
+            if "EUROPA" in name_norm and "FORA" not in name_norm:
+                if "E1" in dist:
+                    accumulate_official(dist["E1"], entry)
+                else:
+                    dist["E1"] = entry
+            elif "FORA" in name_norm and "EUROPA" in name_norm:
+                if "E2" in dist:
+                    accumulate_official(dist["E2"], entry)
+                else:
+                    dist["E2"] = entry
+
+    # Fallback para folha País se ausente em dist
+    pais_sheet = sheets.get("pais", {})
+    if "E1" not in dist:
+        if "800000" in pais_sheet:
+            dist["E1"] = pais_sheet["800000"]
+    if "E2" not in dist:
+        if "900000" in pais_sheet:
+            dist["E2"] = pais_sheet["900000"]
 
     conc = {}
     for code, entry in sheets.get("concelho", {}).items():
@@ -384,6 +506,7 @@ def load_globais_era2(year):
     dist = {}
     national = None
     global_entry = None
+    estrangeiro = None
 
     for code, entry in dist_raw.items():
         if code in ("230000", "500000", "000050"):
@@ -392,6 +515,8 @@ def load_globais_era2(year):
         if code in ("990000", "000099"):
             global_entry = entry
             continue
+        if year == 2009 and code == "800000":
+            continue
         key = DISTRITO_CODE_TO_KEY.get(code)
         if key is None:
             if code.endswith("0000") and 1 <= int(code[:2]) <= 18:
@@ -399,24 +524,51 @@ def load_globais_era2(year):
             elif code.startswith("0000") and 1 <= int(code[4:]) <= 18:
                 key = f"{int(code[4:]):02d}"
         if key:
-            dist[key] = entry
+            if key in dist:
+                accumulate_official(dist[key], entry)
+            else:
+                dist[key] = entry
+
+    # Estrangeiro
+    for code in ("600000", "006000"):
+        if code in dist_raw:
+            estrangeiro = dist_raw[code]
+            break
+        if code in pais_raw:
+            estrangeiro = pais_raw[code]
+            break
 
     # círculos Europa / Fora da Europa vêm da sheet País
     for code, key in (("800000", "E1"), ("900000", "E2")):
         if code in pais_raw:
-            dist[key] = pais_raw[code]
+            if year == 2009:
+                if code == "800000":
+                    estrangeiro = pais_raw[code]
+            else:
+                if key in dist:
+                    accumulate_official(dist[key], pais_raw[code])
+                else:
+                    dist[key] = pais_raw[code]
 
     conc = {}
     for code, entry in conc_raw.items():
         if code.endswith("00") and not code.endswith("0000"):
-            conc[code[:4]] = entry
+            key = OLD_CONC_TO_MODERN.get(code[:4], code[:4])
+            conc[key] = entry
 
     # freguesias: remapear códigos de ilha antigos (19-22) -> DICOFRE moderno
     island_cw = load_island_crosswalk(year) if year <= 2005 else {}
     freg = {}
-    for code, entry in freg_raw.items():
-        if code[:2] in OLD_ISLAND_PREFIXES and code in island_cw:
-            code = island_cw[code]
+    for code_raw, entry in freg_raw.items():
+        if code_raw[:2] in OLD_ISLAND_PREFIXES:
+            if code_raw in island_cw:
+                code = island_cw[code_raw]
+            else:
+                if not code_raw.endswith("00"):
+                    print(f"  AVISO: código de ilha não resolvido em load_globais_era2 ({year}): {code_raw} ({entry.get('name')})")
+                code = code_raw
+        else:
+            code = code_raw
         if is_freguesia_code(code):
             freg[code] = entry
 
@@ -438,6 +590,7 @@ def load_globais_era2(year):
     return {
         "national": national,
         "global": global_entry,
+        "estrangeiro": estrangeiro,
         "distrito": dist,
         "concelho": conc,
         "freguesia": freg,
@@ -537,10 +690,17 @@ def load_globais_era1(year):
                 else:
                     distritos[dt] = entry
         elif div == 'C':
-            concelhos[code[:4]] = entry
+            key = OLD_CONC_TO_MODERN.get(code[:4], code[:4])
+            concelhos[key] = entry
         elif div == 'F':
-            if code[:2] in OLD_ISLAND_PREFIXES and code in island_cw:
-                code = island_cw[code]
+            code_raw = code
+            if code_raw[:2] in OLD_ISLAND_PREFIXES:
+                if code_raw in island_cw:
+                    code = island_cw[code_raw]
+                else:
+                    if not code_raw.endswith("00"):
+                        print(f"  AVISO: código de ilha não resolvido em load_globais_era1 ({year}): {code_raw} ({entry.get('name')})")
+                    code = code_raw
             if is_freguesia_code(code):
                 freguesias[code] = entry
             
@@ -1017,10 +1177,158 @@ def build_year(year):
             if key in ("E1", "E2"):
                 d["votes"] = entry["votes"]
         for key, entry in official.get("concelho", {}).items():
-            if key in concelho:
+            if key not in concelho:
+                concelho[key] = {
+                    "votes": dict(entry["votes"]),
+                    "inscritos": entry["inscritos"],
+                    "votantes": entry["votantes"],
+                    "brancos": entry["brancos"],
+                    "nulos": entry["nulos"]
+                }
+                print(f"  FALLBACK Concelho: {key} ({entry.get('name')}) inserido a partir de oficial (em falta na soma de freguesias)")
+            else:
+                # Verificar divergência nos votos
+                sum_freg = sum(concelho[key]["votes"].values())
+                sum_ofic = sum(entry["votes"].values())
+                if sum_ofic > 0:
+                    diff_pct = abs(sum_freg - sum_ofic) / sum_ofic
+                    if diff_pct > 0.005:
+                        concelho[key]["votes"] = dict(entry["votes"])
+                        print(f"  FALLBACK Concelho: {key} ({entry.get('name')}) votos corrigidos via oficial (divergência de {diff_pct*100:.2f}%: freg={sum_freg}, oficial={sum_ofic})")
+                
+                # Atualizar dados oficiais do concelho
                 concelho[key].update({
-                    "inscritos": entry["inscritos"], "votantes": entry["votantes"],
-                    "brancos": entry["brancos"], "nulos": entry["nulos"]})
+                    "inscritos": entry["inscritos"],
+                    "votantes": entry["votantes"],
+                    "brancos": entry["brancos"],
+                    "nulos": entry["nulos"]
+                })
+
+    # Círculos da emigração (Europa/Fora da Europa 1976-1991) e círculos especiais de
+    # 1975 (Macau/Moçambique/Emigração): não constam dos workbooks brutos, só nos
+    # mapas oficiais do Diário da República — ver etl/ar_circulos_extra.py.
+    for key, entry in MANUAL_CIRCLE_DATA.get(year, {}).items():
+        distrito[key] = {
+            "nome_oficial": entry["name"],
+            "inscritos": entry["inscritos"], "votantes": entry["votantes"],
+            "brancos": entry["brancos"], "nulos": entry["nulos"],
+            "mandatos": entry["mandatos"], "mandatos_p": dict(entry["mandatos_p"]),
+            "votes": dict(entry["votes"]),
+        }
+        for party in entry["votes"]:
+            if party not in parties:
+                parties.append(party)
+                meta["parties"][party] = {"nome": party}
+        for party, v in entry["votes"].items():
+            national_votes[party] = national_votes.get(party, 0) + v
+            meta["national"]["votes_oficial"][party] = meta["national"]["votes_oficial"].get(party, 0) + v
+        for party, m in entry["mandatos_p"].items():
+            meta["national"]["mandatos_p"][party] = meta["national"]["mandatos_p"].get(party, 0) + m
+        meta["national"]["inscritos"] = meta["national"].get("inscritos", 0) + entry["inscritos"]
+        meta["national"]["votantes"] = meta["national"].get("votantes", 0) + entry["votantes"]
+        meta["national"]["brancos"] = meta["national"].get("brancos", 0) + entry["brancos"]
+        meta["national"]["nulos"] = meta["national"].get("nulos", 0) + entry["nulos"]
+    if MANUAL_CIRCLE_DATA.get(year):
+        # O total nacional de mandatos (fonte P-row do Excel bruto) por vezes já
+        # inclui os mandatos da emigração e por vezes não; nunca deixar o total
+        # ficar abaixo da soma por partido depois de somarmos os círculos.
+        soma_mandatos_p = sum(meta["national"]["mandatos_p"].values())
+        if meta["national"]["mandatos"] < soma_mandatos_p:
+            meta["national"]["mandatos"] = soma_mandatos_p
+
+    if year >= 2009:
+        # Re-calcular meta["national"] e meta["global"] com a soma dos círculos reais em distrito
+        # para evitar as inconsistências das linhas totais dos workbooks Excel
+        
+        # 1. National (círculos domésticos: todos exceto E1 e E2)
+        nat_mandatos = 0
+        nat_mandatos_p = defaultdict(int)
+        nat_votes_oficial = defaultdict(int)
+        for c_key, c_entry in distrito.items():
+            if c_key in ("E1", "E2"):
+                continue
+            nat_mandatos += c_entry.get("mandatos") or 0
+            for p, m in c_entry.get("mandatos_p", {}).items():
+                nat_mandatos_p[p] += m
+            votes_dict = c_entry.get("votes", {})
+            if not votes_dict and "votes_oficial" in c_entry:
+                votes_dict = c_entry["votes_oficial"]
+            for p, v in votes_dict.items():
+                nat_votes_oficial[p] += v
+                
+        meta["national"]["mandatos"] = nat_mandatos
+        meta["national"]["mandatos_p"] = dict(nat_mandatos_p)
+        meta["national"]["votes_oficial"] = dict(nat_votes_oficial)
+        
+        # 2. Global (todos os círculos incluindo E1 e E2)
+        if "global" in meta and meta["global"]:
+            glob_mandatos = 0
+            glob_mandatos_p = defaultdict(int)
+            glob_votes = defaultdict(int)
+            for c_key, c_entry in distrito.items():
+                glob_mandatos += c_entry.get("mandatos") or 0
+                for p, m in c_entry.get("mandatos_p", {}).items():
+                    glob_mandatos_p[p] += m
+                votes_dict = c_entry.get("votes", {})
+                if not votes_dict and "votes_oficial" in c_entry:
+                    votes_dict = c_entry["votes_oficial"]
+                for p, v in votes_dict.items():
+                    glob_votes[p] += v
+                    
+            meta["global"]["mandatos"] = glob_mandatos
+            meta["global"]["mandatos_p"] = dict(glob_mandatos_p)
+            meta["global"]["votes"] = dict(glob_votes)
+
+        # Unificações
+        if year == 2015:
+            # National
+            psd_m = meta["national"]["mandatos_p"].pop("PPD/PSD", 0)
+            cds_m = meta["national"]["mandatos_p"].pop("CDS-PP", 0)
+            meta["national"]["mandatos_p"]["PàF"] = meta["national"]["mandatos_p"].get("PàF", 0) + psd_m + cds_m
+            psd_v = meta["national"]["votes_oficial"].pop("PPD/PSD", 0)
+            cds_v = meta["national"]["votes_oficial"].pop("CDS-PP", 0)
+            meta["national"]["votes_oficial"]["PàF"] = meta["national"]["votes_oficial"].get("PàF", 0) + psd_v + cds_v
+            
+            # Global
+            if "global" in meta and meta["global"]:
+                psd_m = meta["global"]["mandatos_p"].pop("PPD/PSD", 0)
+                cds_m = meta["global"]["mandatos_p"].pop("CDS-PP", 0)
+                meta["global"]["mandatos_p"]["PàF"] = meta["global"]["mandatos_p"].get("PàF", 0) + psd_m + cds_m
+                psd_v = meta["global"]["votes"].pop("PPD/PSD", 0)
+                cds_v = meta["global"]["votes"].pop("CDS-PP", 0)
+                meta["global"]["votes"]["PàF"] = meta["global"]["votes"].get("PàF", 0) + psd_v + cds_v
+                
+        elif year == 2024:
+            # National
+            mp_m = meta["national"]["mandatos_p"].pop("Madeira Primeiro", 0)
+            ppm_m = meta["national"]["mandatos_p"].pop("PPM", 0)
+            meta["national"]["mandatos_p"]["AD"] = meta["national"]["mandatos_p"].get("AD", 0) + mp_m + ppm_m
+            mp_v = meta["national"]["votes_oficial"].pop("Madeira Primeiro", 0)
+            ppm_v = meta["national"]["votes_oficial"].pop("PPM", 0)
+            meta["national"]["votes_oficial"]["AD"] = meta["national"]["votes_oficial"].get("AD", 0) + mp_v + ppm_v
+            
+            # Global
+            if "global" in meta and meta["global"]:
+                mp_m = meta["global"]["mandatos_p"].pop("Madeira Primeiro", 0)
+                ppm_m = meta["global"]["mandatos_p"].pop("PPM", 0)
+                meta["global"]["mandatos_p"]["AD"] = meta["global"]["mandatos_p"].get("AD", 0) + mp_m + ppm_m
+                mp_v = meta["global"]["votes"].pop("Madeira Primeiro", 0)
+                ppm_v = meta["global"]["votes"].pop("PPM", 0)
+                meta["global"]["votes"]["AD"] = meta["global"]["votes"].get("AD", 0) + mp_v + ppm_v
+                
+        elif year == 2025:
+            # National
+            ada_m = meta["national"]["mandatos_p"].pop("AD Açores", 0)
+            meta["national"]["mandatos_p"]["AD"] = meta["national"]["mandatos_p"].get("AD", 0) + ada_m
+            ada_v = meta["national"]["votes_oficial"].pop("AD Açores", 0)
+            meta["national"]["votes_oficial"]["AD"] = meta["national"]["votes_oficial"].get("AD", 0) + ada_v
+            
+            # Global
+            if "global" in meta and meta["global"]:
+                ada_m = meta["global"]["mandatos_p"].pop("AD Açores", 0)
+                meta["global"]["mandatos_p"]["AD"] = meta["global"]["mandatos_p"].get("AD", 0) + ada_m
+                ada_v = meta["global"]["votes"].pop("AD Açores", 0)
+                meta["global"]["votes"]["AD"] = meta["global"]["votes"].get("AD", 0) + ada_v
 
     official_f = {}
     if official and official.get("freguesia"):
@@ -1081,6 +1389,8 @@ def build_year(year):
 if __name__ == "__main__":
     args = sys.argv[1:]
     years = YEARS if "--all" in args else [int(a) for a in args if a.isdigit()]
+    # Apenas processar anos que tenham o ficheiro de resultados "certo" correspondente
+    years = [y for y in years if (RESULTADOS_DIR / f"PT {y} certo.xlsx").exists()]
     if not years:
         print(__doc__)
         sys.exit(1)

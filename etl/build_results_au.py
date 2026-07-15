@@ -20,17 +20,47 @@ from collections import defaultdict
 from pathlib import Path
 import pandas as pd
 
-from common import (RESULTADOS_DIR, OUT_DIR, norm_dicofre, circulo_from_dicofre,
-                    is_freguesia_code, strip_accents_upper)
+from common import (PROJECT_ROOT, OUT_DIR, norm_dicofre, circulo_from_dicofre,
+                    is_freguesia_code, strip_accents_upper, OLD_CONC_TO_MODERN, dhondt)
 from build_results import to_int, load_island_crosswalk, OLD_ISLAND_PREFIXES
+
+MAPPING_1997_FREGUESIA = {
+    # Odivelas (split from Loures 1107 to Odivelas 1116)
+    "110704": "111601",  # Caneças
+    "110720": "111602",  # Famões
+    "110710": "111603",  # Odivelas
+    "110725": "111604",  # Olival Basto
+    "110718": "111605",  # Pontinha
+    "110711": "111606",  # Póvoa de Santo Adrião
+    "110721": "111607",  # Ramada
+    
+    # Vizela (split from Guimarães 0308, Felgueiras 1303, Lousada 1305 to Vizela 0314)
+    "130519": "031401",  # Barrosas (Santa Eulália) (Lousada)
+    "030852": "031402",  # Caldas de Vizela (São João) (Guimarães)
+    "030859": "031403",  # Caldas de Vizela (São Miguel) (Guimarães)
+    "030825": "031404",  # Infias (Guimarães)
+    "030870": "031405",  # Tagilde (Guimarães)
+    "130322": "031406",  # Vizela (Santo Adrião) (Felgueiras)
+    "030861": "031407",  # Vizela (São Paio) (Guimarães)
+    
+    # Trofa (split from Santo Tirso 1314 to Trofa 1318)
+    "131403": "131801",  # Alvarelhos
+    "131421": "131802",  # Bougado (Santiago)
+    "131425": "131803",  # Bougado (São Martinho)
+    "131422": "131804",  # Coronado (São Mamede)
+    "131428": "131805",  # Coronado (São Romão)
+    "131408": "131806",  # Covelas
+    "131409": "131807",  # Guidões
+    "131414": "131808",  # Muro
+}
 from build_results_pr import reconcile_with_map, find_sheet
 
-AU_DIR = RESULTADOS_DIR.parent / "autarquicas"
+AU_DIR = PROJECT_ROOT / "resultados" / "resultados puros (sem alteração minha)"
 
 # Mapeamento do ano AU para o ano AR do mapa correspondente
 MAP_YEAR = {
     "1976": 1976, "1979": 1979, "1982": 1983, "1985": 1985,
-    "1989": 1991, "1993": 1995, "1997": 1999, "2001": 2002,
+    "1989": 1991, "1993": 1993, "1997": 1997, "2001": 2002,
     "2005": 2005, "2009": 2009, "2013": 2015, "2017": 2019,
     "2021": 2022, "2025": 2026
 }
@@ -42,16 +72,7 @@ AU_YEARS = sorted(list(MAP_YEAR.keys()), key=int, reverse=True)
 # dentro do distrito (não codificam o concelho), por isso o crosswalk de freguesia
 # (junção_D) NÃO serve para concelhos — este mapa por concelho é estável em 1976-2005.
 # Gerado e validado por correspondência de nomes contra concelhos_2005.geojson (30/30).
-ISLAND_CONCELHO_CW = {
-    "1901": "4301", "1902": "4501", "1903": "4401", "1904": "4502", "1905": "4302",
-    "2001": "4901", "2002": "4701", "2003": "4801", "2004": "4601", "2005": "4602",
-    "2006": "4802", "2007": "4603",
-    "2101": "4201", "2102": "4202", "2103": "4203", "2104": "4204", "2105": "4205",
-    "2106": "4206", "2107": "4101",
-    "2201": "3101", "2202": "3102", "2203": "3103", "2204": "3104", "2205": "3105",
-    "2206": "3106", "2207": "3201", "2208": "3107", "2209": "3108", "2210": "3109",
-    "2211": "3110",
-}
+ISLAND_CONCELHO_CW = OLD_CONC_TO_MODERN
 
 
 def get_au_filepath(year, sub):
@@ -235,13 +256,16 @@ def build_tag_sub(year, sub):
     if freg_rows:
         for r in freg_rows:
             code = r["code"]
+            if year in ("1993", "1997") and code in MAPPING_1997_FREGUESIA:
+                code = MAPPING_1997_FREGUESIA[code]
             if code[:2] in OLD_ISLAND_PREFIXES and code in island_cw:
                 code = island_cw[code]
             if not is_freguesia_code(code):
                 continue
             results[code] = {sigla: o["votos"] for sigla, o in r["opts"].items()}
             names[code] = r["name"]
-            official_f[code] = [r["inscritos"], r["votantes"], r["brancos"], r["nulos"]]
+            official_f[code] = [r["inscritos"], r["votantes"], r["brancos"], r["nulos"],
+                                 r["mandatos_total"], {sigla: o["mandatos"] for sigla, o in r["opts"].items()}]
         
         moved = reconcile_with_map(results, names, official_f, map_year)
         if moved:
@@ -261,15 +285,109 @@ def build_tag_sub(year, sub):
                 dst = {"votes": defaultdict(int), "mandatos_p": defaultdict(int),
                        "presidents": defaultdict(int), "maiorias": defaultdict(int),
                        "inscritos": 0, "votantes": 0, "brancos": 0, "nulos": 0,
-                       "mandatos_total": 0}
+                       "mandatos": 0}
                 concelho[c_key] = dst
             for sigla, o in r["opts"].items():
                 dst["votes"][sigla] += o["votos"]
                 dst["mandatos_p"][sigla] += o["mandatos"]
                 dst["presidents"][sigla] += o["presidentes"]
                 dst["maiorias"][sigla] += o["maiorias"]
-            for k in ("inscritos", "votantes", "brancos", "nulos", "mandatos_total"):
+            dst["mandatos"] += r["mandatos_total"]
+            for k in ("inscritos", "votantes", "brancos", "nulos"):
                 dst[k] += r[k]
+    if year in ("1993", "1997"):
+        if sub in ("cm", "am"):
+            # Odivelas, Vizela, Trofa did not exist as independent concelhos for CM/AM.
+            # They copy the results of their mother concelhos (Loures, Guimarães, Santo Tirso).
+            import copy
+            if "1107" in concelho:
+                concelho["1116"] = copy.deepcopy(concelho["1107"])
+            if year == "1997":
+                if "0308" in concelho:
+                    concelho["0314"] = copy.deepcopy(concelho["0308"])
+                if "1314" in concelho:
+                    concelho["1318"] = copy.deepcopy(concelho["1314"])
+        else:
+            # Under AF (Assembleia de Freguesia), they had local junta elections,
+            # so we aggregate child concelhos and subtract them from mother concelhos.
+            child_to_fregs = {
+                "1116": ["111601", "111602", "111603", "111604", "111605", "111606", "111607"],
+            }
+            if year == "1997":
+                child_to_fregs["0314"] = ["031401", "031402", "031403", "031404", "031405", "031406", "031407"]
+                child_to_fregs["1318"] = ["131801", "131802", "131803", "131804", "131805", "131806", "131807", "131808"]
+            
+            freg_to_mother = {
+                # Odivelas
+                "111601": "1107", "111602": "1107", "111603": "1107", "111604": "1107", "111605": "1107", "111606": "1107", "111607": "1107",
+            }
+            if year == "1997":
+                freg_to_mother.update({
+                    # Vizela
+                    "031401": "1305", "031402": "0308", "031403": "0308", "031404": "0308", "031405": "0308", "031406": "1303", "031407": "0308",
+                    # Trofa
+                    "131801": "1314", "131802": "1314", "131803": "1314", "131804": "1314", "131805": "1314", "131806": "1314", "131807": "1314", "131808": "1314"
+                })
+            
+            # Build child concelhos by summing their freguesias
+            for c_key, f_list in child_to_fregs.items():
+                c_votes = defaultdict(int)
+                insc = vot = bra = nul = 0
+                for f_code in f_list:
+                    if f_code in official_f:
+                        f_off = official_f[f_code]  # [inscritos, votantes, brancos, nulos, mandatos_total, opts_mandatos]
+                        insc += f_off[0]
+                        vot += f_off[1]
+                        bra += f_off[2]
+                        nul += f_off[3]
+                    if f_code in results:
+                        for p, v in results[f_code].items():
+                            c_votes[p] += v
+                
+                # Calculate mandatos via d'hondt
+                num_seats = 11 if c_key == "1116" else 7
+                mandatos_p = dhondt(dict(c_votes), num_seats)
+                
+                # President and maioria
+                sorted_parties = sorted(c_votes.items(), key=lambda x: x[1], reverse=True)
+                presidents = {}
+                maiorias = {}
+                if sorted_parties:
+                    winner = sorted_parties[0][0]
+                    presidents[winner] = 1
+                    if mandatos_p.get(winner, 0) > num_seats / 2:
+                        maiorias[winner] = 1
+                        
+                concelho[c_key] = {
+                    "votes": dict(c_votes),
+                    "mandatos_p": mandatos_p,
+                    "presidents": presidents,
+                    "maiorias": maiorias,
+                    "inscritos": insc,
+                    "votantes": vot,
+                    "brancos": bra,
+                    "nulos": nul,
+                    "mandatos": num_seats
+                }
+                
+            # Subtract child freguesias from mother concelhos
+            for f_code, m_key in freg_to_mother.items():
+                if m_key in concelho and f_code in results:
+                    m_dst = concelho[m_key]
+                    # Subtract votes
+                    for p, v in results[f_code].items():
+                        if p in m_dst["votes"]:
+                            m_dst["votes"][p] -= v
+                            if m_dst["votes"][p] <= 0:
+                                del m_dst["votes"][p]
+                    # Subtract metadados
+                    if f_code in official_f:
+                        f_off = official_f[f_code]
+                        m_dst["inscritos"] -= f_off[0]
+                        m_dst["votantes"] -= f_off[1]
+                        m_dst["brancos"] -= f_off[2]
+                        m_dst["nulos"] -= f_off[3]
+
     # defaultdict -> dict
     for c_val in concelho.values():
         for k in ("votes", "mandatos_p", "presidents", "maiorias"):
@@ -293,7 +411,7 @@ def build_tag_sub(year, sub):
                 "votantes": r["votantes"],
                 "brancos": r["brancos"],
                 "nulos": r["nulos"],
-                "mandatos_total": r["mandatos_total"]
+                "mandatos": r["mandatos_total"]
             }
 
     # Fallback agregados Distrito a partir de concelhos se distrito estiver em falta/vazio
@@ -311,7 +429,7 @@ def build_tag_sub(year, sub):
                     vot += c_val["votantes"]
                     bra += c_val["brancos"]
                     nul += c_val["nulos"]
-                    mand_tot += c_val["mandatos_total"]
+                    mand_tot += c_val["mandatos"]
                     for p, v in c_val["votes"].items(): votes_sum[p] += v
                     for p, m in c_val["mandatos_p"].items(): mandatos_sum[p] += m
                     for p, pr in c_val["presidents"].items(): presidents_sum[p] += pr
@@ -326,7 +444,7 @@ def build_tag_sub(year, sub):
                     "votantes": vot,
                     "brancos": bra,
                     "nulos": nul,
-                    "mandatos_total": mand_tot
+                    "mandatos": mand_tot
                 }
 
     # Totais Nacionais
@@ -352,7 +470,7 @@ def build_tag_sub(year, sub):
             nat_vot += d_val["votantes"]
             nat_bra += d_val["brancos"]
             nat_nul += d_val["nulos"]
-            nat_mand_total += d_val["mandatos_total"]
+            nat_mand_total += d_val["mandatos"]
             for p, v in d_val["votes"].items(): nat_votes[p] += v
             for p, m in d_val["mandatos_p"].items(): nat_mandatos[p] += m
             for p, pr in d_val["presidents"].items(): nat_presidents[p] += pr

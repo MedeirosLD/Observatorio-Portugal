@@ -3,6 +3,7 @@
 import re
 import unicodedata
 from pathlib import Path
+from collections import defaultdict
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 MAPAS_DIR = PROJECT_ROOT / "mapas"
@@ -10,7 +11,7 @@ RESULTADOS_DIR = PROJECT_ROOT / "resultados" / "assembleia da republica"
 RAW_DIR = RESULTADOS_DIR / "resultados puros (sem alteração minha)"
 OUT_DIR = PROJECT_ROOT / "dados"
 
-YEARS = [1975, 1976, 1979, 1980, 1983, 1985, 1987, 1991, 1995, 1999,
+YEARS = [1975, 1976, 1979, 1980, 1983, 1985, 1987, 1991, 1993, 1995, 1997, 1999,
          2002, 2005, 2009, 2011, 2015, 2019, 2022, 2024, 2025, 2026]
 
 # Círculos com geometria: 18 distritos + regiões autónomas.
@@ -32,6 +33,18 @@ BBOX_MADEIRA = (-17.5, 29.9, -15.2, 33.3)
 BBOX_ACORES = (-31.5, 36.8, -24.9, 39.9)
 
 
+OLD_CONC_TO_MODERN = {
+    "1901": "4301", "1902": "4501", "1903": "4401", "1904": "4502", "1905": "4302",
+    "2001": "4901", "2002": "4701", "2003": "4801", "2004": "4601", "2005": "4602",
+    "2006": "4802", "2007": "4603",
+    "2101": "4201", "2102": "4202", "2103": "4203", "2104": "4204", "2105": "4205",
+    "2106": "4206", "2107": "4101",
+    "2201": "3101", "2202": "3102", "2203": "3103", "2204": "3104", "2205": "3105",
+    "2206": "3106", "2207": "3201", "2208": "3107", "2209": "3108", "2210": "3109",
+    "2211": "3110",
+}
+
+
 def norm_dicofre(v):
     """Normaliza um código DICOFRE para 6 caracteres (Excel perde zeros à esquerda).
 
@@ -48,12 +61,27 @@ def norm_dicofre(v):
         return None
     if s.isdigit():
         if len(s) <= 2:
-            return s.zfill(2) + "0000"
+            s = s.zfill(2) + "0000"
         elif len(s) <= 4:
-            return s.zfill(4) + "00"
+            s = s.zfill(4) + "00"
         else:
-            return s.zfill(6)
-    return s if len(s) == 6 else None
+            s = s.zfill(6)
+    if len(s) == 6:
+        return s
+    return None
+
+
+def dhondt(votes, seats):
+    """Distribuição de `seats` lugares pelos votos (método de Hondt)."""
+    quo = []
+    for p, v in votes.items():
+        for d in range(1, seats + 1):
+            quo.append((v / d, p))
+    quo.sort(key=lambda x: x[0], reverse=True)
+    out = defaultdict(int)
+    for _, p in quo[:seats]:
+        out[p] += 1
+    return dict(out)
 
 
 def circulo_from_dicofre(dicofre):

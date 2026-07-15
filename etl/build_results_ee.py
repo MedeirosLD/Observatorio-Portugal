@@ -25,7 +25,7 @@ from collections import defaultdict
 import pandas as pd
 
 from common import (RESULTADOS_DIR, OUT_DIR, norm_dicofre, circulo_from_dicofre,
-                    is_freguesia_code)
+                    is_freguesia_code, dhondt)
 from build_results import to_int, load_island_crosswalk, OLD_ISLAND_PREFIXES
 from build_results_pr import reconcile_with_map, find_sheet, clean_country_name
 
@@ -55,22 +55,10 @@ NO_ELECTION_CONCELHOS = {"2014": ["1707"]}
 
 # ------------------------------------------------------------- helpers -------
 
-def dhondt(votes, seats):
-    """Distribuição de `seats` lugares pelos votos (método de Hondt)."""
-    quo = []
-    for p, v in votes.items():
-        for d in range(1, seats + 1):
-            quo.append((v / d, p))
-    quo.sort(key=lambda x: x[0], reverse=True)
-    out = defaultdict(int)
-    for _, p in quo[:seats]:
-        out[p] += 1
-    return dict(out)
-
 
 def level_key(code):
     """Código de agregado -> chave de círculo/nível (tolerante a esquemas curtos)."""
-    if code in ("000050", "500000", "230000", "000023"):
+    if code in ("000050", "500000", "230000", "000023", "000000"):
         return "national"
     if code in ("000099", "990000"):
         return "global"
@@ -280,7 +268,7 @@ def load_elpe(fname):
     """Ficheiro de 1999 (linhas de 820 chars, tipo P/D/C/F)."""
     lines = (EE_DIR / fname).read_bytes().decode("latin1").split("\r\n")
     out = {"freguesia": [], "concelho": [], "distrito": [], "national": []}
-    tmap = {"F": "freguesia", "C": "concelho", "D": "distrito", "P": "national"}
+    tmap = {"F": "freguesia", "C": "concelho", "D": "distrito", "R": "distrito", "P": "national"}
     for L in lines:
         if len(L) < 200:
             continue
@@ -329,9 +317,19 @@ def build_tag(tag):
             code = island_cw[code]
         if not is_freguesia_code(code):
             continue
-        results[code] = r["votes"]
-        names[code] = r["name"]
-        official_f[code] = [r["inscritos"], r["votantes"], r["brancos"], r["nulos"]]
+        if code in results:
+            for cand, v in r["votes"].items():
+                results[code][cand] = results[code].get(cand, 0) + v
+            official_f[code][0] += r["inscritos"]
+            official_f[code][1] += r["votantes"]
+            official_f[code][2] += r["brancos"]
+            official_f[code][3] += r["nulos"]
+            if r["name"] and r["name"].strip().lower() != names[code].strip().lower():
+                names[code] = f"{names[code]} / {r['name']}"
+        else:
+            results[code] = dict(r["votes"])
+            names[code] = r["name"]
+            official_f[code] = [r["inscritos"], r["votantes"], r["brancos"], r["nulos"]]
 
     moved = reconcile_with_map(results, names, official_f, map_year)
     if moved:
@@ -494,6 +492,11 @@ def build_tag(tag):
     print(f"  -> {out.name}: {out.stat().st_size/1e6:.2f} MB | freguesias {len(results)}")
 
     # QA
+    if national_off:
+        soma_map = sum(national_votes.values())
+        soma_of = sum(national_off["votes"].values())
+        print(f"  QA: soma freguesias={soma_map:,} vs distrito nacional={soma_of:,} "
+              f"(diff {soma_map - soma_of:+,})")
     if national_votes:
         tot = sum(national_votes.values())
         w = max(national_votes, key=lambda p: national_votes[p])

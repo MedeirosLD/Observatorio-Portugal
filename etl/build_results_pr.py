@@ -318,9 +318,21 @@ def build_tag(tag):
             code = island_cw[code]
         if not is_freguesia_code(code):
             continue
-        results[code] = r["votes"]
-        names[code] = r["name"]
-        official_f[code] = [r["inscritos"], r["votantes"], r["brancos"], r["nulos"]]
+        if tag == "1986" and code in ("111001", "170308"):
+            continue
+        if code in results:
+            for cand, v in r["votes"].items():
+                results[code][cand] = results[code].get(cand, 0) + v
+            official_f[code][0] += r["inscritos"]
+            official_f[code][1] += r["votantes"]
+            official_f[code][2] += r["brancos"]
+            official_f[code][3] += r["nulos"]
+            if r["name"] and r["name"].strip().lower() != names[code].strip().lower():
+                names[code] = f"{names[code]} / {r['name']}"
+        else:
+            results[code] = dict(r["votes"])
+            names[code] = r["name"]
+            official_f[code] = [r["inscritos"], r["votantes"], r["brancos"], r["nulos"]]
 
     print(f"  freguesias: {len(results)} | candidatos: {cand_order}")
 
