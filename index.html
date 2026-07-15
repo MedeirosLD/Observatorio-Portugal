@@ -168,6 +168,13 @@
             </div>
           </div>
 
+          <div class="ctrl" id="blocksDefinerCtrl" style="margin-top: 10px;">
+            <label>Blocos Personalizados</label>
+            <div class="chip-group">
+              <button class="chip-button" id="btnOpenBlockDefiner" onclick="openBlockDefinerModal()" title="Criar blocos ou coligações personalizadas agrupando partidos">Agrupar Partidos 🛠️</button>
+            </div>
+          </div>
+
           <div class="ctrl" style="margin-top: 10px;">
             <button id="btnExplainRules" class="btn-toggle-inaptos" title="Como são distribuídos os mandatos"
               onclick="openProportionalRulesModal()">
@@ -509,6 +516,30 @@
     </div>
   </div>
 
+  <!-- DEFINIDOR DE BLOCOS -->
+  <div class="info-overlay" id="blockDefinerOverlay" onclick="closeBlockDefinerModal(event)">
+    <div class="info-modal wide-modal" style="max-height: 90vh; overflow-y: auto;" onclick="event.stopPropagation()">
+      <button class="info-close" onclick="closeBlockDefinerModal()">✕</button>
+      <h3>Definir Blocos de Partidos</h3>
+      <p style="color: var(--muted); font-size: 0.9rem; margin-bottom: 15px;">
+        Crie blocos personalizados agrupando vários partidos. Os resultados nos mapas, mandatos e painéis serão agregados sob o nome e a cor do bloco nas eleições AR e Europeias.
+      </p>
+      
+      <div id="blockDefinerList" style="margin-top: 15px; margin-bottom: 15px;">
+        <!-- Gerado dinamicamente -->
+      </div>
+      
+      <button onclick="addNewCustomBlock()" class="btn-toggle-inaptos active" style="margin-bottom: 20px; font-weight: 600;">
+        + Novo Bloco
+      </button>
+      
+      <div style="text-align: right; border-top: 1px solid var(--border-color); padding-top: 15px; display: flex; justify-content: flex-end; gap: 10px;">
+        <button onclick="applyCustomBlocks()" class="btn-toggle-inaptos active" style="font-weight: 600;">Aplicar Blocos</button>
+        <button onclick="clearCustomBlocks()" class="btn-toggle-inaptos" style="border-color: var(--muted); color: var(--muted);">Limpar Todos</button>
+      </div>
+    </div>
+  </div>
+
   <!-- SCRIPTS -->
   <script src="js/globals.js?v=20260706a"></script>
   <script src="js/pt/nuts-data.js?v=20260708a"></script>
@@ -519,6 +550,7 @@
   <script src="js/pt/eleitos-portugal.js?v=20260712a"></script>
   <script src="js/pt/map-render-pt.js?v=20260704a"></script>
   <script src="js/pt/results-panel-pt.js?v=20260712b"></script>
+  <script src="js/pt/block-definer-pt.js?v=20260714a"></script>
   <script src="js/pt/ui-controls-pt.js?v=20260704a"></script>
   <script src="js/ui-helpers.js?v=20260704a"></script>
 

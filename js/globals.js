@@ -370,6 +370,10 @@ function getNormalizedPartyColorKey(partido) {
 function getFederationColorPartyKey() { return ''; }
 
 function getResolvedPartyColor(partido) {
+  if (STATE.customBlocks) {
+    const block = STATE.customBlocks.find(b => b.name === partido);
+    if (block) return block.color;
+  }
   // Presidenciais: a "chave" é o nome canónico do candidato; a cor (herdada do
   // partido de apoio) vem da METADATA do ano, com override de cor personalizada.
   if (STATE.currentElectionType === 'pr') {

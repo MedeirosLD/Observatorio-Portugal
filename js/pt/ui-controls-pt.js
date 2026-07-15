@@ -12,6 +12,10 @@ async function loadCurrentYear() {
     const bundle = await loadYearData(STATE.currentYear);
     STATE.data = bundle.data;
     STATE.geo = bundle.geo;
+    STATE.originalData = null;
+    if (typeof applyCustomBlocksToData === 'function') {
+      applyCustomBlocksToData();
+    }
     updateCirculoShortcutsForYear();
 
     // modo desempenho: revalidar o partido no novo ano
@@ -174,6 +178,9 @@ function updateElectionUiVisibility() {
   
   const seatDonuts = document.getElementById('seatDonutsToggleCtrl');
   if (seatDonuts) seatDonuts.style.display = (elType === 'ar') ? '' : 'none';
+  
+  const blocksDefiner = document.getElementById('blocksDefinerCtrl');
+  if (blocksDefiner) blocksDefiner.style.display = (elType === 'ar' || elType === 'europeias') ? '' : 'none';
   
   const auSubtypeCtrl = document.getElementById('auSubtypeCtrl');
   if (auSubtypeCtrl) auSubtypeCtrl.style.display = isAu ? '' : 'none';
