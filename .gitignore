@@ -2,6 +2,8 @@
 /mapas/
 /resultados/
 /scratch/
+/mapas_diario_da_republica/
+/etl/review/
 
 # Editor and Tooling caches
 .claude/
