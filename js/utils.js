@@ -754,46 +754,6 @@ if (typeof window !== 'undefined') {
   window.getGradientColorForMode = getGradientColorForMode;
 }
 
-function updateClearSelectionButtonVisibility() {
-  const btn = document.getElementById('btnClearSelection') || (typeof dom !== 'undefined' ? dom.btnClearSelection : null);
-  if (!btn) return;
-
-  let showButton = false;
-  if (typeof STATE !== 'undefined') {
-    if (STATE.currentElectionType === 'geral') {
-      const hasRegionalFilter = 
-        (typeof currentMesorregiaoFilter !== 'undefined' && currentMesorregiaoFilter !== 'all') ||
-        (typeof currentMicrorregiaoFilter !== 'undefined' && currentMicrorregiaoFilter !== 'all') ||
-        (typeof currentCidadeFilter !== 'undefined' && currentCidadeFilter !== 'all') ||
-        (typeof currentBairroFilter !== 'undefined' && currentBairroFilter !== 'all') ||
-        (typeof currentLocalFilter !== 'undefined' && currentLocalFilter !== '');
-      
-      const hasManualSelection = 
-        !STATE.isFilterAggregationActive && 
-        (typeof selectedLocationIDs !== 'undefined' && selectedLocationIDs.size > 0);
-        
-      showButton = hasRegionalFilter || hasManualSelection;
-    } else if (STATE.currentElectionType === 'municipal') {
-      const muniSelected = !!(typeof dom !== 'undefined' && dom.selectMunicipio?.value);
-      const hasManualSelection = 
-        !STATE.isFilterAggregationActive && 
-        (typeof selectedLocationIDs !== 'undefined' && selectedLocationIDs.size > 0);
-        
-      showButton = muniSelected || hasManualSelection;
-    }
-  }
-
-  if (showButton) {
-    btn.classList.remove('hidden');
-  } else {
-    btn.classList.add('hidden');
-  }
-}
-
-if (typeof window !== 'undefined') {
-  window.updateClearSelectionButtonVisibility = updateClearSelectionButtonVisibility;
-}
-
 if (typeof window !== 'undefined') {
   if (!window.CANDIDATE_NAME_TO_PARTY) {
     window.CANDIDATE_NAME_TO_PARTY = new Map();

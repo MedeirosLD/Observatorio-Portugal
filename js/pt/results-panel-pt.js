@@ -8,11 +8,12 @@ function buildBreadcrumbHtml() {
   const scope = STATE.scope;
   const parts = [];
   const link = (label, action) =>
-    `<a href="#" class="scope-crumb" data-scope-action="${action}" style="color:var(--muted); text-decoration:underline; text-underline-offset:2px;">${escapeHtml(label)}</a>`;
+    `<a href="#" class="scope-crumb" data-scope-action="${action}" title="Ir para ${escapeAttribute(label)}">${escapeHtml(label)}</a>`;
+  const current = (label) => `<span class="scope-crumb-current">${escapeHtml(label)}</span>`;
 
   if (selectedLocationIDs.size > 0) {
     parts.push(link('Portugal', 'national'));
-    parts.push(`<span>Seleção manual</span>`);
+    parts.push(current('Seleção manual'));
     return parts.join(' › ');
   }
 
@@ -34,20 +35,20 @@ function buildBreadcrumbHtml() {
   if (scope.level === 'distrito') {
     if (STATE.selectedCountry && (scope.key === 'E1' || scope.key === 'E2')) {
       parts.push(link(CIRCULOS.get(scope.key) || scope.key, `distrito:${scope.key}`));
-      parts.push(`<span>${escapeHtml(STATE.selectedCountry)}</span>`);
+      parts.push(current(STATE.selectedCountry));
     } else {
-      parts.push(`<span>${escapeHtml(CIRCULOS.get(scope.key) || scope.key)}</span>`);
+      parts.push(current(CIRCULOS.get(scope.key) || scope.key));
     }
   } else if (circ) {
     parts.push(link(CIRCULOS.get(circ) || circ, `distrito:${circ}`));
   }
   if (scope.level === 'concelho') {
-    parts.push(`<span>${escapeHtml(scope.nome || scope.key)}</span>`);
+    parts.push(current(scope.nome || scope.key));
   } else if (scope.level === 'freguesia') {
     const dico = scope.key.slice(0, 4);
     const concelhoNome = getConcelhoNome(dico);
     parts.push(link(concelhoNome, `concelho:${dico}`));
-    parts.push(`<span>${escapeHtml(STATE.data?.NAMES?.[scope.key] || scope.key)}</span>`);
+    parts.push(current(STATE.data?.NAMES?.[scope.key] || scope.key));
   }
   return parts.join(' › ');
 }
@@ -97,16 +98,16 @@ function renderResultsPanel() {
         bottom: 125%;
         left: 50%;
         transform: translateX(-50%);
-        background-color: #1e1e2e;
-        color: #cdd6f4;
+        background-color: var(--card);
+        color: var(--text-sec);
         text-align: left;
         padding: 8px 12px;
-        border-radius: 6px;
+        border-radius: var(--radius-lg);
         font-size: 0.68rem;
         white-space: normal;
         width: 220px;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        border: 1px solid var(--border-color);
         z-index: 9999;
         opacity: 0;
         visibility: hidden;
@@ -125,6 +126,8 @@ function renderResultsPanel() {
 
   const scopeData = getScopeData();
   if (!scopeData) return;
+
+  if (typeof updateMobileFilterSummary === 'function') updateMobileFilterSummary();
 
   if (STATE.currentElectionType === 'au') {
     renderAutarquicasPanel(scopeData);
@@ -240,7 +243,7 @@ function renderResultsPanel() {
 
         breakdownRowHtml = `
           <tr class="paf-breakdown-row" style="display: none; background: rgba(0,0,0,0.15);">
-            <td colspan="${showMandatos ? 4 : 3}" style="padding: 10px 15px; border-bottom: 1px solid var(--border);">
+            <td colspan="${showMandatos ? 4 : 3}" style="padding: 8px 12px; border-bottom: 1px solid var(--border);">
               <div style="display: flex; flex-direction: column; gap: 8px;">
                 <div style="font-size: 0.7rem; font-weight: 700; color: var(--muted); letter-spacing: 0.5px; text-transform: uppercase;">
                   Composição dos Resultados (PàF + Ilhas)
@@ -296,7 +299,7 @@ function renderResultsPanel() {
 
         breakdownRowHtml = `
           <tr class="paf-breakdown-row" style="display: none; background: rgba(0,0,0,0.15);">
-            <td colspan="${showMandatos ? 4 : 3}" style="padding: 10px 15px; border-bottom: 1px solid var(--border);">
+            <td colspan="${showMandatos ? 4 : 3}" style="padding: 8px 12px; border-bottom: 1px solid var(--border);">
               <div style="display: flex; flex-direction: column; gap: 8px;">
                 <div style="font-size: 0.7rem; font-weight: 700; color: var(--muted); letter-spacing: 0.5px; text-transform: uppercase;">
                   Composição dos Resultados (AD + Madeira Primeiro + PPM)
@@ -349,7 +352,7 @@ function renderResultsPanel() {
 
         breakdownRowHtml = `
           <tr class="paf-breakdown-row" style="display: none; background: rgba(0,0,0,0.15);">
-            <td colspan="${showMandatos ? 4 : 3}" style="padding: 10px 15px; border-bottom: 1px solid var(--border);">
+            <td colspan="${showMandatos ? 4 : 3}" style="padding: 8px 12px; border-bottom: 1px solid var(--border);">
               <div style="display: flex; flex-direction: column; gap: 8px;">
                 <div style="font-size: 0.7rem; font-weight: 700; color: var(--muted); letter-spacing: 0.5px; text-transform: uppercase;">
                   Composição dos Resultados (AD + AD Açores)
@@ -401,7 +404,7 @@ function renderResultsPanel() {
 
         breakdownRowHtml = `
           <tr class="paf-breakdown-row" style="display: none; background: rgba(0,0,0,0.15);">
-            <td colspan="${showMandatos ? 4 : 3}" style="padding: 10px 15px; border-bottom: 1px solid var(--border);">
+            <td colspan="${showMandatos ? 4 : 3}" style="padding: 8px 12px; border-bottom: 1px solid var(--border);">
               <div style="display: flex; flex-direction: column; gap: 8px;">
                 <div style="font-size: 0.7rem; font-weight: 700; color: var(--muted); letter-spacing: 0.5px; text-transform: uppercase;">
                   Composição dos Resultados (AD + Ilhas)
@@ -457,7 +460,7 @@ function renderResultsPanel() {
 
         breakdownRowHtml = `
           <tr class="paf-breakdown-row" style="display: none; background: rgba(0,0,0,0.15);">
-            <td colspan="${showMandatos ? 4 : 3}" style="padding: 10px 15px; border-bottom: 1px solid var(--border);">
+            <td colspan="${showMandatos ? 4 : 3}" style="padding: 8px 12px; border-bottom: 1px solid var(--border);">
               <div style="display: flex; flex-direction: column; gap: 8px;">
                 <div style="font-size: 0.7rem; font-weight: 700; color: var(--muted); letter-spacing: 0.5px; text-transform: uppercase;">
                   Composição dos Resultados (FRS + Ilhas)
@@ -494,15 +497,15 @@ function renderResultsPanel() {
 
     html += `
       <tr data-cand-partido="${safeParty}" style="border-bottom: 1px solid rgba(255,255,255,0.03);">
-        <td class="color-bar-td" style="width: 16px; padding: 8px 0;">
+        <td class="color-bar-td" style="width: 16px; padding: 5px 0;">
           <button type="button" class="swatch-button cand-color-bar"
-               style="background-color: ${sw}; width: 6px; height: 32px; border: none; border-radius: 3px; cursor: pointer; padding: 0; display: block;"
+               style="background-color: ${sw}; width: 6px; height: 26px; border: none; border-radius: 3px; cursor: pointer; padding: 0; display: block;"
                data-candidate-name="${safeParty}"
                data-candidate-party="${escapeAttribute(STATE.currentElectionType === 'pr' ? fullName : party)}"
                data-current-color="${sw}"
                title="Personalizar cor do partido"></button>
         </td>
-        <td class="align-left" style="padding: 8px; vertical-align: middle;">
+        <td class="align-left" style="padding: 5px 6px; vertical-align: middle;">
           <div style="display: flex; flex-direction: column; gap: 2px; align-items: flex-start; justify-content: center; min-width: 0;">
             <span class="cand-name-text" style="font-size: 0.82rem; font-weight: 700; color: var(--text); line-height: 1.2; word-break: break-word;">${escapeHtml(party)}</span>
             ${fullName ? `<span style="font-size: 0.65rem; color: var(--muted); line-height: 1.2;">${escapeHtml(fullName)}</span>` : ''}
@@ -599,7 +602,7 @@ function renderResultsPanel() {
         const winnerColor = winner !== '—' ? getResolvedPartyColor(winner) : 'var(--muted)';
         
         countriesHtml += `
-          <div class="country-row-item" data-country-name="${escapeAttribute(cName)}" style="display: flex; align-items: center; justify-content: space-between; padding: 6px 8px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
+          <div class="country-row-item" data-country-name="${escapeAttribute(cName)}" style="display: flex; align-items: center; justify-content: space-between; padding: 6px 8px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04); border-radius: var(--radius-lg); cursor: pointer; transition: background 0.2s ease, border-color 0.2s ease;">
             <div style="display: flex; flex-direction: column; gap: 2px;">
               <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-sec);">${escapeHtml(cName)}</span>
               <span style="font-size: 0.65rem; color: var(--muted);">${fmtInt(cTotal)} votos</span>
@@ -625,7 +628,7 @@ function renderResultsPanel() {
   // a listagem dos eleitos abre a partir do número de mandatos na tabela
   // (eleitos-portugal.js: .eleitos-seats-btn -> toggleEleitosPartyRow)
 
-  if (typeof triggerMobileResultsNotification === 'function') triggerMobileResultsNotification();
+  if (typeof updateMobileFilterSummary === 'function') updateMobileFilterSummary();
 }
 
 // alias herdado do visualizador original (chamado pelo popover de cores)
@@ -994,15 +997,15 @@ function renderAutarquicasPanel(scopeData) {
       
       html += `
         <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
-          <td class="color-bar-td" style="width: 16px; padding: 8px 0;">
+          <td class="color-bar-td" style="width: 16px; padding: 5px 0;">
             <button type="button" class="swatch-button cand-color-bar"
-                 style="background-color: ${sw}; width: 6px; height: 32px; border: none; border-radius: 3px; cursor: pointer; padding: 0; display: block;"
+                 style="background-color: ${sw}; width: 6px; height: 26px; border: none; border-radius: 3px; cursor: pointer; padding: 0; display: block;"
                  data-candidate-name="${safeParty}"
                  data-candidate-party="${escapeAttribute(item.party)}"
                  data-current-color="${sw}"
                  title="Personalizar cor do partido"></button>
           </td>
-          <td class="align-left" style="padding: 8px; padding-left: 8px; vertical-align: middle;">
+          <td class="align-left" style="padding: 5px 6px; vertical-align: middle;">
             <div style="display: flex; flex-direction: column; gap: 2px; align-items: flex-start; justify-content: center; min-width: 0;">
               <span class="cand-name-text" style="font-size: 0.82rem; font-weight: 700; color: var(--text); line-height: 1.2; word-break: break-word;">${escapeHtml(item.party)}</span>
               ${toggleHtml}
@@ -1031,7 +1034,7 @@ function renderAutarquicasPanel(scopeData) {
           membersRows += `
             <tr style="border-bottom: 1px dotted rgba(255,255,255,0.02);">
               <td style="padding: 6px 0; vertical-align: middle; text-align: left;">
-                <span style="display: inline-block; width: 4px; height: 16px; background-color: ${memberSw}; border-radius: 1px; margin-right: 6px; vertical-align: middle;"></span>
+                <span style="display: inline-block; width: 4px; height: 16px; background-color: ${memberSw}; border-radius: 0; margin-right: 6px; vertical-align: middle;"></span>
                 <span style="font-weight: 600; color: var(--text); font-size: 0.78rem; vertical-align: middle;">${escapeHtml(member.party)}</span>
                 ${memberFullName ? `<div style="font-size: 0.65rem; color: var(--muted); padding-left: 10px;">${escapeHtml(memberFullName)}</div>` : ''}
               </td>
@@ -1111,15 +1114,15 @@ function renderAutarquicasPanel(scopeData) {
       
       html += `
         <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
-          <td class="color-bar-td" style="width: 16px; padding: 8px 0;">
+          <td class="color-bar-td" style="width: 16px; padding: 5px 0;">
             <button type="button" class="swatch-button cand-color-bar"
-                 style="background-color: ${sw}; width: 6px; height: 32px; border: none; border-radius: 3px; cursor: pointer; padding: 0; display: block;"
+                 style="background-color: ${sw}; width: 6px; height: 26px; border: none; border-radius: 3px; cursor: pointer; padding: 0; display: block;"
                  data-candidate-name="${safeParty}"
                  data-candidate-party="${escapeAttribute(item.party)}"
                  data-current-color="${sw}"
                  title="Personalizar cor do partido"></button>
           </td>
-          <td class="align-left" style="padding: 8px; padding-left: 8px; vertical-align: middle;">
+          <td class="align-left" style="padding: 5px 6px; vertical-align: middle;">
             <div style="display: flex; flex-direction: column; gap: 2px; align-items: flex-start; justify-content: center; min-width: 0;">
               <span class="cand-name-text" style="font-size: 0.82rem; font-weight: 700; color: var(--text); line-height: 1.2; word-break: break-word;">${escapeHtml(item.party)}</span>
               ${toggleHtml}
@@ -1145,7 +1148,7 @@ function renderAutarquicasPanel(scopeData) {
           membersRows += `
             <tr style="border-bottom: 1px dotted rgba(255,255,255,0.02);">
               <td style="padding: 6px 0; vertical-align: middle; text-align: left;">
-                <span style="display: inline-block; width: 4px; height: 16px; background-color: ${memberSw}; border-radius: 1px; margin-right: 6px; vertical-align: middle;"></span>
+                <span style="display: inline-block; width: 4px; height: 16px; background-color: ${memberSw}; border-radius: 0; margin-right: 6px; vertical-align: middle;"></span>
                 <span style="font-weight: 600; color: var(--text); font-size: 0.78rem; vertical-align: middle;">${escapeHtml(member.party)}</span>
                 ${memberFullName ? `<div style="font-size: 0.65rem; color: var(--muted); padding-left: 10px;">${escapeHtml(memberFullName)}</div>` : ''}
               </td>
@@ -1235,15 +1238,15 @@ function renderAutarquicasPanel(scopeData) {
       
       html += `
         <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
-          <td class="color-bar-td" style="width: 16px; padding: 8px 0;">
+          <td class="color-bar-td" style="width: 16px; padding: 5px 0;">
             <button type="button" class="swatch-button cand-color-bar"
-                 style="background-color: ${sw}; width: 6px; height: 32px; border: none; border-radius: 3px; cursor: pointer; padding: 0; display: block;"
+                 style="background-color: ${sw}; width: 6px; height: 26px; border: none; border-radius: 3px; cursor: pointer; padding: 0; display: block;"
                  data-candidate-name="${safeParty}"
                  data-candidate-party="${escapeAttribute(item.party)}"
                  data-current-color="${sw}"
                  title="Personalizar cor do partido"></button>
           </td>
-          <td class="align-left" style="padding: 8px; padding-left: 8px; vertical-align: middle;">
+          <td class="align-left" style="padding: 5px 6px; vertical-align: middle;">
             <div style="display: flex; flex-direction: column; gap: 3px; align-items: flex-start; justify-content: center; min-width: 0;">
               <span class="cand-name-text" style="font-size: 0.82rem; font-weight: 700; color: var(--text); line-height: 1.25; word-break: break-word;">${escapeHtml(item.party)}</span>
               ${badgeHtml}
@@ -1274,7 +1277,7 @@ function renderAutarquicasPanel(scopeData) {
           membersRows += `
             <tr style="border-bottom: 1px dotted rgba(255,255,255,0.02);">
               <td style="padding: 6px 0; vertical-align: middle; text-align: left;">
-                <span style="display: inline-block; width: 4px; height: 16px; background-color: ${memberSw}; border-radius: 1px; margin-right: 6px; vertical-align: middle;"></span>
+                <span style="display: inline-block; width: 4px; height: 16px; background-color: ${memberSw}; border-radius: 0; margin-right: 6px; vertical-align: middle;"></span>
                 <span style="font-weight: 600; color: var(--text); font-size: 0.78rem; vertical-align: middle;">${escapeHtml(member.party)}</span>
                 ${memberFullName ? `<div style="font-size: 0.65rem; color: var(--muted); padding-left: 10px;">${escapeHtml(memberFullName)}</div>` : ''}
               </td>
@@ -1311,7 +1314,7 @@ function renderAutarquicasPanel(scopeData) {
     if (subType === 'cm' && level === 'concelho') {
       html += `
         <div style="margin-top: 16px; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 16px; display: flex; justify-content: center;">
-          <button id="btnGoToAM" class="button primary" style="font-size: 0.72rem; padding: 8px 16px; border-radius: 8px; cursor: pointer; background: rgba(255, 255, 255, 0.05); color: var(--text); border: 1px solid rgba(255,255,255,0.1); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px;">
+          <button id="btnGoToAM" class="button primary" title="Ver os resultados da Assembleia Municipal deste concelho" style="font-size: 0.72rem; padding: 8px 16px; border-radius: var(--radius-lg); cursor: pointer; background: rgba(255, 255, 255, 0.05); color: var(--text); border: 1px solid rgba(255,255,255,0.1); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; transition: background 0.2s, border-color 0.2s, color 0.2s; display: inline-flex; align-items: center; gap: 6px;">
             <span>Ver Assembleia Municipal</span>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
           </button>

@@ -170,7 +170,7 @@ function buildEleitosPartyHtml(party, data, elType, subtype, scope) {
       const sw = (typeof getResolvedPartyColor === 'function')
         ? getResolvedPartyColor(p.sigla) : 'var(--muted)';
       const body = `
-        <div style="display: flex; align-items: center; gap: 10px; padding: 8px 10px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px;">
+        <div style="display: flex; align-items: center; gap: 10px; padding: 8px 10px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: var(--radius-lg);">
           <span style="width: 5px; height: 30px; background: ${sw}; border-radius: 2px; flex: 0 0 auto;"></span>
           <div style="min-width: 0; text-align: left;">
             <div style="font-size: 0.82rem; font-weight: 700; color: var(--text);">${escapeHtml(p.nome)}</div>

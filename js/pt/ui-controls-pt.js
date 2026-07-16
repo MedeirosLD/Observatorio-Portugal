@@ -420,6 +420,22 @@ function setupControls() {
     if (!STATE.currentCirculo) focusCountryOnMap(true);
   });
 
+  // Botão "Voltar" um nível de território (sobre o mapa)
+  document.getElementById('btnBackLevel')?.addEventListener('click', () => {
+    const btn = document.getElementById('btnBackLevel');
+    const action = btn?.dataset.backAction;
+    if (action === 'concelho' && btn.dataset.backKey) {
+      navigateToConcelho(btn.dataset.backKey);
+    } else if (action === 'distrito' && btn.dataset.backKey) {
+      navigateToDistrito(btn.dataset.backKey, { focus: true });
+    } else if (action === 'national') {
+      navigateToNational({ focus: true });
+    } else {
+      clearSelection();
+      if (!STATE.currentCirculo) focusCountryOnMap(true);
+    }
+  });
+
   // Modo 3D (perspetiva) + extrusão de altura
   document.getElementById('btnToggle3D')?.addEventListener('click', () => {
     const isPitched = map.getPitch() > 10;

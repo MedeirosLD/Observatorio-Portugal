@@ -585,6 +585,7 @@ function updateClearSelectionButtonVisibility() {
     const show = selectedLocationIDs.size > 0 || !!STATE.selectedCountry;
     btn.style.display = show ? 'inline-flex' : 'none';
   }
+  updateBackLevelButton();
 }
 
 // ---------- CAMADAS ----------
@@ -659,6 +660,46 @@ function syncMapLevelChips() {
       b.classList.toggle('active', b.dataset.value === STATE.mapLevel);
     });
   }
+  updateBackLevelButton();
+}
+
+// Destino do botão "Voltar" (um nível acima do escopo atual)
+function getBackLevelTarget() {
+  if (selectedLocationIDs.size > 0 || STATE.selectedCountry) {
+    if (STATE.currentCirculo) {
+      return { label: CIRCULOS.get(STATE.currentCirculo) || STATE.currentCirculo, action: 'clear' };
+    }
+    return { label: 'Portugal', action: 'clear' };
+  }
+  const scope = STATE.scope || {};
+  if (scope.level === 'freguesia') {
+    const dico = String(scope.key || '').slice(0, 4);
+    return { label: getConcelhoNome(dico), action: 'concelho', key: dico };
+  }
+  if (scope.level === 'concelho') {
+    const circ = scope.circulo || circuloFromDicofre(String(scope.key) + '00');
+    return { label: CIRCULOS.get(circ) || circ, action: 'distrito', key: circ };
+  }
+  if (scope.level === 'distrito') {
+    return { label: 'Portugal', action: 'national' };
+  }
+  return null;
+}
+
+function updateBackLevelButton() {
+  const btn = document.getElementById('btnBackLevel');
+  if (!btn) return;
+  const target = getBackLevelTarget();
+  if (!target) {
+    btn.style.display = 'none';
+    return;
+  }
+  btn.style.display = 'inline-flex';
+  const labelEl = document.getElementById('btnBackLevelLabel');
+  if (labelEl) labelEl.textContent = target.label;
+  btn.title = `Voltar para ${target.label}`;
+  btn.dataset.backAction = target.action;
+  btn.dataset.backKey = target.key || '';
 }
 
 function syncMapLevel() {

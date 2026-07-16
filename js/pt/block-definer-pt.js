@@ -48,7 +48,7 @@ function renderBlockDefinerList() {
 
   if (STATE.customBlocks.length === 0) {
     container.innerHTML = `
-      <div style="color: var(--muted); text-align: center; padding: 25px; border: 1px dashed var(--border-color); border-radius: 6px; font-size: 0.95rem;">
+      <div style="color: var(--muted); text-align: center; padding: 25px; border: 1px dashed var(--border-color); border-radius: var(--radius-lg); font-size: 0.95rem;">
         Nenhum bloco personalizado criado. Clique em "+ Novo Bloco" para começar!
       </div>
     `;
@@ -83,7 +83,7 @@ function renderBlockDefinerList() {
     });
 
     html += `
-      <div class="block-card" style="border: 1px solid var(--border-color); border-radius: 6px; padding: 14px; margin-bottom: 12px; background: rgba(255,255,255,0.02); transition: border-color 0.2s;">
+      <div class="block-card" style="border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 14px; margin-bottom: 12px; background: rgba(255,255,255,0.02); transition: border-color 0.2s;">
         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap;">
           <input type="text" value="${block.name || ''}" class="select" style="max-width: 220px; height: 32px; padding: 4px 8px; display: inline-block; font-size: 0.9rem;" placeholder="Nome do Bloco (ex: Esquerda)" onchange="updateBlockName(${idx}, this.value)" />
           <input type="color" value="${block.color || '#ff007f'}" onchange="updateBlockColor(${idx}, this.value)" style="width: 40px; height: 32px; border: 1px solid var(--border-color); background: none; cursor: pointer; border-radius: 4px; padding: 0;" title="Cor do Bloco" />

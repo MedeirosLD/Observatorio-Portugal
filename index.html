@@ -3,17 +3,17 @@
 
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Visualizador Eleitoral - Observatório Portugal</title>
-  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
 
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 
-  <link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@300;400;500;600;700;800&display=swap"
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@300;400;500;600;700;800&family=Spectral:ital,wght@0,500;0,600;0,700;1,500&display=swap"
     rel="stylesheet">
 
-  <link rel="stylesheet" href="style.css?v=20260706a" />
+  <link rel="stylesheet" href="style.css?v=20260715d" />
 </head>
 
 <body data-theme="dark">
@@ -25,7 +25,7 @@
       <span class="toolbar-page">Visualizador Eleitoral</span>
     </div>
     <div class="toolbar-right">
-      <a href="index.html" class="toolbar-link">
+      <a href="index.html" class="toolbar-link" title="Voltar à página inicial">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
           stroke-linecap="round" stroke-linejoin="round">
           <polyline points="15 18 9 12 15 6"></polyline>
@@ -50,9 +50,22 @@
     </div>
   </div>
 
+  <!-- BARRA COMPACTA DE FILTROS (MOBILE) -->
+  <div class="m-filter-bar">
+    <button id="mFilterSummary" title="Abrir filtros">Assembleia da República · 2025</button>
+    <button id="mFilterBtn" title="Escolher eleição e filtros">
+      <svg width="12" height="12" aria-hidden="true"><use href="#svg-sliders"></use></svg>
+      <span>Filtros</span>
+    </button>
+  </div>
+
   <div class="app">
     <!-- PAINEL ESQUERDO: seleção de eleição + visualização -->
     <div class="panel side side-left">
+      <div class="m-sheet-header">
+        <span>Filtros</span>
+        <button id="mFilterClose" aria-label="Fechar filtros"><svg width="13" height="13" aria-hidden="true"><use href="#svg-x"></use></svg></button>
+      </div>
       <div class="body">
 
         <div class="section" id="loaderBox">
@@ -67,28 +80,28 @@
             </select>
           </div>
 
-          <div class="ctrl" id="auSubtypeCtrl" style="margin-top: 6px; display: none;">
+          <div class="ctrl" id="auSubtypeCtrl" style="margin-top: 4px; display: none;">
             <label>Sub-eleição</label>
             <div class="chip-group" id="auSubtypeChips">
-              <button class="chip-button active" data-value="cm" title="Câmara Municipal">CM</button>
-              <button class="chip-button" data-value="am" title="Assembleia Municipal">AM</button>
-              <button class="chip-button" data-value="af" title="Assembleia de Freguesia">AF</button>
+              <button class="chip-button active" data-value="cm" title="Câmara Municipal"><strong>CM</strong><small>Câmara Municipal</small></button>
+              <button class="chip-button" data-value="am" title="Assembleia Municipal"><strong>AM</strong><small>Assembleia Municipal</small></button>
+              <button class="chip-button" data-value="af" title="Assembleia de Freguesia"><strong>AF</strong><small>Assembleia de Freguesia</small></button>
             </div>
           </div>
 
-          <div class="ctrl" style="margin-top: 6px;">
+          <div class="ctrl" style="margin-top: 4px;">
             <label for="selectYear">Ano</label>
             <select id="selectYear" class="select"></select>
           </div>
 
-          <div class="ctrl" style="margin-top: 6px;">
+          <div class="ctrl" style="margin-top: 4px;">
             <label for="selectCirculo">Círculo Eleitoral</label>
             <select id="selectCirculo" class="select">
               <option value="" selected>Portugal (todos os círculos)</option>
             </select>
           </div>
 
-          <div class="ctrl" id="nutsFilterCtrl" style="margin-top: 6px;">
+          <div class="ctrl" id="nutsFilterCtrl" style="margin-top: 4px;">
             <label for="selectNuts">Região / NUTS / Áreas Met.</label>
             <select id="selectNuts" class="select">
               <option value="" selected>Sem filtro regional</option>
@@ -143,8 +156,8 @@
           <div class="ctrl">
             <label>Modo</label>
             <div class="chip-group" id="vizModeChips">
-              <button class="chip-button active" data-value="vencedor">Vencedor</button>
-              <button class="chip-button" data-value="desempenho">Desempenho</button>
+              <button class="chip-button active" data-value="vencedor" title="Colorir cada território pelo partido vencedor">Vencedor</button>
+              <button class="chip-button" data-value="desempenho" title="Ver o desempenho de um partido específico">Desempenho</button>
             </div>
           </div>
 
@@ -156,33 +169,33 @@
           <div class="ctrl" id="vizGradientModeCtrl">
             <label>Modo de Cor</label>
             <div class="chip-group" id="vizGradientModeChips">
-              <button class="chip-button active" data-value="margin">Margem</button>
-              <button class="chip-button" data-value="winnerPct">% do Vencedor</button>
+              <button class="chip-button active" data-value="margin" title="Intensidade da cor pela margem de vitória">Margem</button>
+              <button class="chip-button" data-value="winnerPct" title="Intensidade da cor pela percentagem do vencedor">% do Vencedor</button>
             </div>
           </div>
 
-          <div class="ctrl" id="seatDonutsToggleCtrl" style="margin-top: 10px;">
+          <div class="ctrl" id="seatDonutsToggleCtrl" style="margin-top: 6px;">
             <label>Visualização no Mapa</label>
             <div class="chip-group">
               <button class="chip-button" id="btnToggleSeatDonuts" title="Mostrar círculos com a distribuição de deputados por partido no mapa">Mostrar Mandatos</button>
             </div>
           </div>
 
-          <div class="ctrl" id="blocksDefinerCtrl" style="margin-top: 10px;">
+          <div class="ctrl" id="blocksDefinerCtrl" style="margin-top: 6px;">
             <label>Blocos Personalizados</label>
             <div class="chip-group">
-              <button class="chip-button" id="btnOpenBlockDefiner" onclick="openBlockDefinerModal()" title="Criar blocos ou coligações personalizadas agrupando partidos">Agrupar Partidos 🛠️</button>
+              <button class="chip-button" id="btnOpenBlockDefiner" onclick="openBlockDefinerModal()" title="Criar blocos ou coligações personalizadas agrupando partidos">Agrupar Partidos <svg width="11" height="11" aria-hidden="true" style="vertical-align: -1px;"><use href="#svg-blocks"></use></svg></button>
             </div>
           </div>
 
-          <div class="ctrl" style="margin-top: 10px;">
+          <div class="ctrl" style="margin-top: 6px;">
             <button id="btnExplainRules" class="btn-toggle-inaptos" title="Como são distribuídos os mandatos"
               onclick="openProportionalRulesModal()">
               Como funciona (método d'Hondt)
             </button>
           </div>
 
-          <div class="ctrl" style="margin-top: 16px;">
+          <div class="ctrl" style="margin-top: 8px;">
             <label>Navegação rápida / Círculos</label>
             <div class="map-insets-shortcuts">
               <button class="inset-shortcut-btn active" data-value="national" title="Visualização Geral (Portugal)">
@@ -250,15 +263,22 @@
     <div class="panel side side-res">
       <div id="map"></div>
       <button id="btnClearSelection" class="btn-clear-selection hidden"
-        title="Voltar para visualização geral">✕</button>
+        title="Voltar para visualização geral" aria-label="Voltar para visualização geral"><svg width="14" height="14" aria-hidden="true"><use href="#svg-x"></use></svg></button>
 
       <!-- CONTROLOS SOBRE O MAPA -->
       <div class="map-overlay-controls">
         <div class="layer-toggle-group" style="display: flex; gap: 4px; align-items: center;">
+          <button id="btnBackLevel" class="btn-back-level" style="display: none;" title="Voltar um nível">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+            <span id="btnBackLevelLabel">Voltar</span>
+          </button>
           <div class="chip-group" id="mapLevelChips" style="display: flex; border: none; background: transparent; padding: 0; margin: 0; box-shadow: none; gap: 2px;">
-            <button class="chip-button active toggle-btn" data-value="distrito">Distritos</button>
-            <button class="chip-button toggle-btn" data-value="concelho">Concelhos</button>
-            <button class="chip-button toggle-btn" data-value="freguesia">Freguesias</button>
+            <button class="chip-button active toggle-btn" data-value="distrito" title="Ver o mapa por distritos / círculos">Distritos</button>
+            <button class="chip-button toggle-btn" data-value="concelho" title="Ver o mapa por concelhos">Concelhos</button>
+            <button class="chip-button toggle-btn" data-value="freguesia" title="Ver o mapa por freguesias">Freguesias</button>
           </div>
           <div style="width: 1px; height: 16px; background: rgba(255,255,255,0.15); margin: 0 4px;"></div>
           <button id="btnToggle3D" class="toggle-btn" title="Alternar Modo 3D (Perspetiva)">
@@ -291,12 +311,16 @@
 
     <!-- PAINEL DIREITO: Resultados -->
     <div class="panel side side-right">
+      <div class="sheet-handle" id="sheetHandle" title="Arrastar para ver mais ou menos resultados">
+        <div class="sheet-grip"></div>
+        <span id="sheetTitle">Resultados</span>
+      </div>
       <div class="body">
 
         <div class="section section-hidden" id="resultsBox">
           <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 12px;">
             <div>
-              <h3 id="resultsTitle" style="margin:0; font-size: 1rem; line-height: 1.3;">Resultados</h3>
+              <h3 id="resultsTitle" style="margin:0; font-size: 1.15rem; line-height: 1.3;">Resultados</h3>
               <small id="resultsSubtitle"
                 style="color:var(--muted); font-size:0.8rem; display:block; margin-top:2px;"></small>
             </div>
@@ -333,27 +357,8 @@
     </div>
   </div>
 
-  <!-- BARRA DE NAVEGAÇÃO INFERIOR PARA DISPOSITIVOS MÓVEIS -->
-  <div class="mobile-nav">
-    <button class="mobile-nav-btn active" data-tab="mapa">
-      <svg class="mobile-nav-icon">
-        <use href="#svg-map"></use>
-      </svg>
-      <span>Mapa</span>
-    </button>
-    <button class="mobile-nav-btn" data-tab="filtros">
-      <svg class="mobile-nav-icon">
-        <use href="#svg-sliders"></use>
-      </svg>
-      <span>Filtros</span>
-    </button>
-    <button class="mobile-nav-btn" id="btnMobileNavResultados" data-tab="resultados">
-      <svg class="mobile-nav-icon">
-        <use href="#svg-bar-chart"></use>
-      </svg>
-      <span>Resultados</span>
-    </button>
-  </div>
+  <!-- BACKDROP DO SHEET DE FILTROS (MOBILE) -->
+  <div id="mBackdrop" class="m-backdrop"></div>
 
 
   <svg width="0" height="0" style="display:none;">
@@ -368,6 +373,12 @@
     <symbol id="svg-x" viewBox="0 0 16 16">
       <line x1="4" y1="4" x2="12" y2="12" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
       <line x1="12" y1="4" x2="4" y2="12" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+    </symbol>
+    <symbol id="svg-blocks" viewBox="0 0 16 16">
+      <rect x="2" y="2" width="7" height="7" fill="none" stroke="currentColor" stroke-width="1.8"
+        stroke-linejoin="round" />
+      <rect x="7" y="7" width="7" height="7" fill="none" stroke="currentColor" stroke-width="1.8"
+        stroke-linejoin="round" />
     </symbol>
     <symbol id="svg-info" viewBox="0 0 24 24">
       <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2" />
@@ -410,7 +421,7 @@
   <!-- GUIA -->
   <div class="info-overlay" id="guideOverlay">
     <div class="info-modal wide-modal">
-      <button class="info-close" id="btnCloseGuide">✕</button>
+      <button class="info-close" id="btnCloseGuide" aria-label="Fechar"><svg width="12" height="12" aria-hidden="true"><use href="#svg-x"></use></svg></button>
       <div class="guide-content">
         <h3>Observatório Portugal: Visualizador Eleitoral</h3>
         <p>
@@ -472,7 +483,7 @@
   <!-- MÉTODO D'HONDT -->
   <div class="info-overlay" id="rulesExplainOverlay" onclick="if(event.target === this) closeProportionalRulesModal()">
     <div class="info-modal wide-modal" style="max-height: 90vh; overflow-y: auto;">
-      <button class="info-close" id="btnCloseRulesExplain" onclick="closeProportionalRulesModal()">✕</button>
+      <button class="info-close" id="btnCloseRulesExplain" onclick="closeProportionalRulesModal()" aria-label="Fechar"><svg width="12" height="12" aria-hidden="true"><use href="#svg-x"></use></svg></button>
       <h3>Como são distribuídos os mandatos: método d'Hondt</h3>
       <p>
         Nas eleições para a Assembleia da República, os 230 deputados são eleitos por
@@ -519,7 +530,7 @@
   <!-- DEFINIDOR DE BLOCOS -->
   <div class="info-overlay" id="blockDefinerOverlay" onclick="closeBlockDefinerModal(event)">
     <div class="info-modal wide-modal" style="max-height: 90vh; overflow-y: auto;" onclick="event.stopPropagation()">
-      <button class="info-close" onclick="closeBlockDefinerModal()">✕</button>
+      <button class="info-close" onclick="closeBlockDefinerModal()" aria-label="Fechar"><svg width="12" height="12" aria-hidden="true"><use href="#svg-x"></use></svg></button>
       <h3>Definir Blocos de Partidos</h3>
       <p style="color: var(--muted); font-size: 0.9rem; margin-bottom: 15px;">
         Crie blocos personalizados agrupando vários partidos. Os resultados nos mapas, mandatos e painéis serão agregados sob o nome e a cor do bloco nas eleições AR e Europeias.
@@ -545,14 +556,14 @@
   <script src="js/pt/nuts-data.js?v=20260708a"></script>
   <script src="js/cache.js?v=20260704a"></script>
   <script src="js/maplibre-compat.js?v=20260704a"></script>
-  <script src="js/utils.js?v=20260704a"></script>
+  <script src="js/utils.js?v=20260715c"></script>
   <script src="js/pt/data-portugal.js?v=20260704a"></script>
-  <script src="js/pt/eleitos-portugal.js?v=20260712a"></script>
-  <script src="js/pt/map-render-pt.js?v=20260704a"></script>
-  <script src="js/pt/results-panel-pt.js?v=20260712b"></script>
-  <script src="js/pt/block-definer-pt.js?v=20260714a"></script>
-  <script src="js/pt/ui-controls-pt.js?v=20260704a"></script>
-  <script src="js/ui-helpers.js?v=20260704a"></script>
+  <script src="js/pt/eleitos-portugal.js?v=20260715a"></script>
+  <script src="js/pt/map-render-pt.js?v=20260715c"></script>
+  <script src="js/pt/results-panel-pt.js?v=20260715d"></script>
+  <script src="js/pt/block-definer-pt.js?v=20260715a"></script>
+  <script src="js/pt/ui-controls-pt.js?v=20260715c"></script>
+  <script src="js/ui-helpers.js?v=20260715d"></script>
 
   <script>
     // Modais (guia + método d'Hondt)

@@ -75,6 +75,16 @@ async function init() {
   window.map = map;
   MLCompat.augmentMap(map);
   MLCompat.refreshThemeColors();
+
+  // Mantém o canvas do mapa colado ao tamanho do contentor (mobile/desktop)
+  if (typeof ResizeObserver !== 'undefined') {
+    const mapContainer = document.getElementById('map');
+    if (mapContainer) {
+      new ResizeObserver(() => {
+        requestAnimationFrame(() => map.resize());
+      }).observe(mapContainer);
+    }
+  }
   if (map.touchZoomRotate) map.touchZoomRotate.disableRotation();
   map.addControl(new maplibregl.NavigationControl({ showCompass: true }), 'bottom-right');
 
@@ -115,7 +125,7 @@ async function init() {
 
   setupBoxSelection();
   initCustomDropdowns();
-  setupMobileNavigation();
+  setupMobileSheets();
 
   // Carrega automaticamente o ano mais recente disponível
   bootstrapData();
@@ -454,60 +464,140 @@ document.addEventListener('click', () => {
   closeAllDropdowns();
 });
 
-// ====== NAVEGAÇÃO MÓVEL ======
-function setupMobileNavigation() {
-  const mobileButtons = document.querySelectorAll('.mobile-nav-btn');
-  const panelLeft = document.querySelector('.panel.side-left');
-  const panelRes = document.querySelector('.panel.side-res');
-  const panelRight = document.querySelector('.panel.side-right');
+// ====== MOBILE: SHEETS DE RESULTADOS E FILTROS ======
+const mobileMedia = typeof window !== 'undefined' && window.matchMedia
+  ? window.matchMedia('(max-width: 768px)')
+  : null;
 
-  if (!panelLeft || !panelRes || !panelRight) return;
+function isMobileLayout() {
+  return !!(mobileMedia && mobileMedia.matches);
+}
 
-  const panels = {
-    mapa: panelRes,
-    filtros: panelLeft,
-    resultados: panelRight
+const SHEET_STATES = ['sheet-peek', 'sheet-half', 'sheet-full'];
+
+function setResultsSheetState(state) {
+  const sheet = document.querySelector('.panel.side-right');
+  if (!sheet) return;
+  sheet.classList.remove('sheet-dragging', ...SHEET_STATES);
+  sheet.style.transform = '';
+  sheet.classList.add(`sheet-${state}`);
+  sheet.dataset.sheetState = state;
+}
+
+function getResultsSheetState() {
+  return document.querySelector('.panel.side-right')?.dataset.sheetState || 'peek';
+}
+
+function openMobileFilters(open) {
+  document.querySelector('.panel.side-left')?.classList.toggle('open', open);
+  document.getElementById('mBackdrop')?.classList.toggle('show', open);
+}
+
+function setupMobileSheets() {
+  const sheet = document.querySelector('.panel.side-right');
+  const handle = document.getElementById('sheetHandle');
+  if (!sheet || !handle) return;
+
+  setResultsSheetState('peek');
+
+  // Arrasto do sheet de resultados pela alça
+  let dragStartY = 0;
+  let dragStartOffset = 0;
+  let dragging = false;
+
+  const offsets = () => {
+    const h = sheet.offsetHeight || 1;
+    return { peek: h - 112, half: h * 0.46, full: 0 };
   };
 
-  mobileButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const targetTab = btn.dataset.tab;
-      if (!panels[targetTab]) return;
+  handle.addEventListener('pointerdown', (e) => {
+    if (!isMobileLayout()) return;
+    dragging = true;
+    dragStartY = e.clientY;
+    dragStartOffset = offsets()[getResultsSheetState()] ?? offsets().peek;
+    sheet.classList.add('sheet-dragging');
+    handle.setPointerCapture(e.pointerId);
+  });
 
-      mobileButtons.forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
+  handle.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    const o = offsets();
+    const next = Math.min(o.peek, Math.max(0, dragStartOffset + (e.clientY - dragStartY)));
+    sheet.style.transform = `translateY(${next}px)`;
+  });
 
-      if (targetTab === 'resultados') {
-        btn.classList.remove('has-update');
-      }
+  handle.addEventListener('pointerup', (e) => {
+    if (!dragging) return;
+    dragging = false;
+    const moved = e.clientY - dragStartY;
+    if (Math.abs(moved) < 6) {
+      // Tap: alterna peek <-> half
+      setResultsSheetState(getResultsSheetState() === 'peek' ? 'half' : 'peek');
+      return;
+    }
+    const o = offsets();
+    const current = dragStartOffset + moved;
+    let best = 'peek';
+    let bestDist = Infinity;
+    for (const [name, off] of Object.entries(o)) {
+      const d = Math.abs(current - off);
+      if (d < bestDist) { bestDist = d; best = name; }
+    }
+    setResultsSheetState(best);
+  });
 
-      Object.entries(panels).forEach(([tabKey, panelEl]) => {
-        panelEl.classList.toggle('mobile-active', tabKey === targetTab);
-      });
+  handle.addEventListener('pointercancel', () => {
+    if (!dragging) return;
+    dragging = false;
+    setResultsSheetState(getResultsSheetState());
+  });
 
-      const appContainer = document.querySelector('.app');
-      if (appContainer) {
-        appContainer.classList.toggle('split-active', targetTab === 'resultados');
-      }
+  // Sheet de filtros
+  document.getElementById('mFilterBtn')?.addEventListener('click', () => openMobileFilters(true));
+  document.getElementById('mFilterSummary')?.addEventListener('click', () => openMobileFilters(true));
+  document.getElementById('mFilterClose')?.addEventListener('click', () => openMobileFilters(false));
+  document.getElementById('mBackdrop')?.addEventListener('click', () => openMobileFilters(false));
 
-      if ((targetTab === 'mapa' || targetTab === 'resultados') && window.map) {
-        requestAnimationFrame(() => window.map.resize());
-      }
-    });
+  // Ao sair do mobile, limpar estados para o desktop
+  mobileMedia?.addEventListener?.('change', (ev) => {
+    if (!ev.matches) {
+      sheet.classList.remove('sheet-dragging', ...SHEET_STATES);
+      sheet.style.transform = '';
+      openMobileFilters(false);
+    } else {
+      setResultsSheetState('peek');
+    }
   });
 }
 
-function triggerMobileResultsNotification() {
-  const isMobile = window.innerWidth <= 768;
-  if (!isMobile) return;
+// Resumo da barra compacta + título do sheet (chamado a cada render dos resultados)
+function updateMobileFilterSummary() {
+  const summaryEl = document.getElementById('mFilterSummary');
+  const titleEl = document.getElementById('sheetTitle');
+  if (!summaryEl && !titleEl) return;
+  try {
+    const elLabel = STATE.currentElectionType === 'pr' ? 'Presidente da República'
+      : STATE.currentElectionType === 'ee' ? 'Parlamento Europeu'
+      : STATE.currentElectionType === 'au' ? (
+          STATE.auSubtype === 'cm' ? 'Autárquicas · Câmara'
+          : STATE.auSubtype === 'am' ? 'Autárquicas · Assembleia M.'
+          : 'Autárquicas · Freguesia'
+        )
+      : 'Assembleia da República';
+    if (summaryEl) summaryEl.textContent = `${elLabel} · ${STATE.currentYear || ''}`;
+    if (titleEl) {
+      const scope = STATE.scope || {};
+      let name = 'Portugal';
+      if (scope.level === 'distrito') name = (typeof CIRCULOS !== 'undefined' && CIRCULOS.get(scope.key)) || scope.key;
+      else if (scope.level === 'concelho') name = scope.nome || scope.key;
+      else if (scope.level === 'freguesia') name = STATE.data?.NAMES?.[scope.key] || scope.key;
+      titleEl.textContent = `Resultados — ${name}`;
+    }
+  } catch (_) { /* estado ainda não pronto */ }
+}
 
-  const btnResultados = document.getElementById('btnMobileNavResultados');
-  const rightPanel = document.querySelector('.panel.side-right');
-  const resultsPanelActive = rightPanel ? rightPanel.classList.contains('mobile-active') : false;
-
-  if (btnResultados && !resultsPanelActive) {
-    btnResultados.classList.add('has-update');
-  }
+if (typeof window !== 'undefined') {
+  window.updateMobileFilterSummary = updateMobileFilterSummary;
 }
 
 if (typeof window !== 'undefined') {
