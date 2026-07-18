@@ -2558,6 +2558,62 @@ input:disabled {
   background: rgba(217, 119, 6, 0.08);
 }
 
+/* Pesquisa de concelhos e freguesias (painel esquerdo) */
+.search-results {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  z-index: 200;
+  background: var(--card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.search-results.hidden {
+  display: none;
+}
+
+.search-result-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  width: 100%;
+  padding: 7px 12px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text);
+  font-family: var(--font-main);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.search-result-item:last-child {
+  border-bottom: none;
+}
+
+.search-result-item:hover,
+.search-result-item:focus-visible {
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.search-result-item strong {
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.search-result-item small {
+  font-size: 0.66rem;
+  color: var(--muted);
+}
+
 /* Breadcrumb de território (painel de resultados) */
 .scope-crumb {
   color: var(--text-sec);
@@ -3048,24 +3104,6 @@ input:disabled {
   width: 100% !important;
 }
 
-.side-right .profile-section h4 {
-  text-align: center !important;
-  margin-left: 117px !important;
-  width: calc(100% - 117px - 60px) !important;
-  box-sizing: border-box !important;
-}
-
-.side-right #profileRendaSection h4 {
-  margin-left: 0 !important;
-  width: 100% !important;
-}
-
-.side-right .profile-renda-display {
-  justify-content: center !important;
-  margin-left: 0 !important;
-  width: 100% !important;
-  box-sizing: border-box !important;
-}
 
 /* Align the parent flex container of the results title/subtitle to the left */
 .side-right #resultsBox > div:first-child {
@@ -3088,21 +3126,6 @@ input:disabled {
   flex: 1 !important;
 }
 
-.side-right .profile-header {
-  display: flex !important;
-  justify-content: center !important;
-  align-items: center !important;
-  gap: 8px !important;
-  text-align: center !important;
-}
-
-.side-right .profile-header h3 {
-  margin: 0 !important;
-}
-
-.side-right .profile-header .info-button {
-  position: static !important;
-}
 
 
 /* =========================================

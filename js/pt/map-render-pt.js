@@ -568,6 +568,26 @@ async function navigateToConcelho(dico, feature = null) {
   applyFiltersAndRedraw();
 }
 
+async function navigateToFreguesia(dicofre) {
+  const dico = String(dicofre).slice(0, 4);
+  await navigateToConcelho(dico);
+
+  selectedLocationIDs.clear();
+  STATE.scope = {
+    level: 'freguesia',
+    key: dicofre,
+    concelho: dico,
+    circulo: circuloFromDicofre(dicofre)
+  };
+
+  const feat = STATE.geo?.freguesias?.features?.find(f => f.properties?.dicofre === dicofre);
+  if (feat) {
+    const bounds = MLCompat.featureBounds(feat);
+    if (bounds) MLCompat.fitMapToBounds(map, bounds, { padding: [60, 60], animate: true });
+  }
+  applyFiltersAndRedraw();
+}
+
 function clearSelection(redraw = true) {
   selectedLocationIDs.clear();
   STATE.selectedCountry = null;
@@ -1260,6 +1280,7 @@ window.updateClearSelectionButtonVisibility = updateClearSelectionButtonVisibili
 window.navigateToNational = navigateToNational;
 window.navigateToDistrito = navigateToDistrito;
 window.navigateToConcelho = navigateToConcelho;
+window.navigateToFreguesia = navigateToFreguesia;
 window.focusCountryOnMap = focusCountryOnMap;
 window.focusCirculoOnMap = focusCirculoOnMap;
 window.focusNutsOnMap = focusNutsOnMap;

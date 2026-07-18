@@ -13,7 +13,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@300;400;500;600;700;800&family=Spectral:ital,wght@0,500;0,600;0,700;1,500&display=swap"
     rel="stylesheet">
 
-  <link rel="stylesheet" href="style.css?v=20260715d" />
+  <link rel="stylesheet" href="style.css?v=20260716a" />
 </head>
 
 <body data-theme="dark">
@@ -70,7 +70,14 @@
 
         <div class="section" id="loaderBox">
 
-          <div class="ctrl">
+          <div class="ctrl" id="territorySearchCtrl" style="position: relative;">
+            <label for="territorySearch">Pesquisar território</label>
+            <input id="territorySearch" class="search-input" type="search"
+              placeholder="Concelho ou freguesia — ex.: Loures, Benfica…" autocomplete="off" spellcheck="false" />
+            <div id="territorySearchResults" class="search-results hidden" role="listbox"></div>
+          </div>
+
+          <div class="ctrl" style="margin-top: 4px;">
             <label for="selectElectionType">Tipo de Eleição</label>
             <select id="selectElectionType" class="select">
               <option value="ar" selected>Assembleia da República</option>
@@ -339,6 +346,7 @@
               </div>
             </div>
             <div class="footer" id="resultsMetrics" style="margin-bottom: 20px;"></div>
+            <div id="territoryProfile"></div>
           </div>
 
         </div>
@@ -557,12 +565,12 @@
   <script src="js/cache.js?v=20260704a"></script>
   <script src="js/maplibre-compat.js?v=20260704a"></script>
   <script src="js/utils.js?v=20260715c"></script>
-  <script src="js/pt/data-portugal.js?v=20260704a"></script>
+  <script src="js/pt/data-portugal.js?v=20260716a"></script>
   <script src="js/pt/eleitos-portugal.js?v=20260715a"></script>
-  <script src="js/pt/map-render-pt.js?v=20260715c"></script>
-  <script src="js/pt/results-panel-pt.js?v=20260715d"></script>
+  <script src="js/pt/map-render-pt.js?v=20260715e"></script>
+  <script src="js/pt/results-panel-pt.js?v=20260717b"></script>
   <script src="js/pt/block-definer-pt.js?v=20260715a"></script>
-  <script src="js/pt/ui-controls-pt.js?v=20260715c"></script>
+  <script src="js/pt/ui-controls-pt.js?v=20260715e"></script>
   <script src="js/ui-helpers.js?v=20260715d"></script>
 
   <script>

@@ -472,6 +472,106 @@ function setupControls() {
 
   syncVizModeChips();
   updateElectionUiVisibility();
+  setupTerritorySearch();
+}
+
+// ====== PESQUISA DE CONCELHOS E FREGUESIAS ======
+function setupTerritorySearch() {
+  const input = document.getElementById('territorySearch');
+  const resultsBox = document.getElementById('territorySearchResults');
+  if (!input || !resultsBox) return;
+
+  const normalize = (s) => String(s || '')
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase();
+
+  function collectMatches(query) {
+    const q = normalize(query);
+    if (q.length < 2) return [];
+    const starts = [];
+    const contains = [];
+    const push = (item, nome) => {
+      const n = normalize(nome);
+      if (n.startsWith(q)) starts.push(item);
+      else if (n.includes(q)) contains.push(item);
+    };
+
+    for (const f of (STATE.geo?.concelhos?.features || [])) {
+      const dico = f.properties?.dico;
+      const nome = f.properties?.concelho;
+      if (dico && nome) push({ type: 'concelho', key: dico, nome }, nome);
+    }
+
+    const names = STATE.data?.NAMES || {};
+    for (const [dicofre, nome] of Object.entries(names)) {
+      if (String(dicofre).length < 6) continue;
+      push({ type: 'freguesia', key: dicofre, nome }, nome);
+    }
+
+    return [...starts, ...contains].slice(0, 10);
+  }
+
+  function hideResults() {
+    resultsBox.classList.add('hidden');
+    resultsBox.innerHTML = '';
+  }
+
+  async function goTo(item) {
+    hideResults();
+    input.value = '';
+    input.blur();
+    if (typeof openMobileFilters === 'function') openMobileFilters(false);
+    if (item.type === 'concelho') {
+      await window.navigateToConcelho(item.key);
+    } else {
+      await window.navigateToFreguesia(item.key);
+    }
+  }
+
+  function renderResults(matches) {
+    if (!matches.length) {
+      hideResults();
+      return;
+    }
+    resultsBox.innerHTML = matches.map((m, i) => {
+      const meta = m.type === 'concelho'
+        ? `Concelho · ${CIRCULOS.get(circuloFromDicofre(m.key + '00')) || ''}`
+        : `Freguesia · ${getConcelhoNome(String(m.key).slice(0, 4))}`;
+      return `<button type="button" class="search-result-item" data-idx="${i}" role="option">
+          <strong>${escapeHtml(m.nome)}</strong>
+          <small>${escapeHtml(meta)}</small>
+        </button>`;
+    }).join('');
+    resultsBox.classList.remove('hidden');
+    resultsBox.querySelectorAll('.search-result-item').forEach((btn) => {
+      btn.addEventListener('click', () => goTo(matches[Number(btn.dataset.idx)]));
+    });
+  }
+
+  let lastMatches = [];
+  input.addEventListener('input', () => {
+    lastMatches = collectMatches(input.value);
+    renderResults(lastMatches);
+  });
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && lastMatches.length) {
+      e.preventDefault();
+      goTo(lastMatches[0]);
+    } else if (e.key === 'Escape') {
+      hideResults();
+      input.blur();
+    }
+  });
+
+  input.addEventListener('focus', () => {
+    if (input.value) renderResults(lastMatches = collectMatches(input.value));
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('#territorySearchCtrl')) hideResults();
+  });
 }
 
 // arranque: descobrir anos disponíveis e carregar o mais recente
