@@ -123,6 +123,7 @@ body {
   color: #ffffff;
   text-decoration: none;
   letter-spacing: -0.3px;
+  line-height: 1.1;
 }
 
 [data-theme="light"] .toolbar-logo {
@@ -145,7 +146,8 @@ body {
   font-weight: 500;
   color: rgba(255, 255, 255, 0.6);
   letter-spacing: 0.2px;
-  margin-top: 1px;
+  line-height: 1;
+  margin-top: -1px;
 }
 
 [data-theme="light"] .toolbar-page {
