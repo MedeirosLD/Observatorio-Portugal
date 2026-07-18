@@ -93,6 +93,7 @@ async function loadCurrentYear() {
     }
 
     buildMapLayers();
+    populateCirculoSelect();
     populateVizPartySelect();
     applyFiltersAndRedraw();
 
@@ -138,14 +139,24 @@ function populateYearSelect(availableYears) {
 function populateCirculoSelect() {
   const sel = dom.selectCirculo;
   if (!sel) return;
+  const oldVal = sel.value || STATE.currentCirculo;
   sel.innerHTML = '<option value="">Portugal (todos os círculos)</option>';
+  const is1975AR = (STATE.currentElectionType === 'ar' && STATE.currentYear === '1975');
   CIRCULOS.forEach((nome, key) => {
+    if (is1975AR && (key === 'E1' || key === 'E2')) return;
+    if (!is1975AR && (key === 'XM' || key === 'XC' || key === 'XE')) return;
     const opt = document.createElement('option');
     opt.value = key;
     opt.textContent = CIRCULOS_SEM_GEOMETRIA.has(key) ? `${nome} (emigração)` : nome;
     sel.appendChild(opt);
   });
-  sel.value = STATE.currentCirculo;
+  if (Array.from(sel.options).some(o => o.value === oldVal)) {
+    sel.value = oldVal;
+    STATE.currentCirculo = oldVal;
+  } else {
+    sel.value = "";
+    STATE.currentCirculo = "";
+  }
 }
 
 function populateVizPartySelect() {

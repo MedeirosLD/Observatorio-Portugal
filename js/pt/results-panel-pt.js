@@ -20,12 +20,12 @@ function buildBreadcrumbHtml() {
   if (scope.level === 'national') {
     const elLabel = STATE.currentElectionType === 'pr' ? 'Presidente da República'
       : STATE.currentElectionType === 'ee' ? 'Parlamento Europeu'
-      : STATE.currentElectionType === 'au' ? (
+        : STATE.currentElectionType === 'au' ? (
           STATE.auSubtype === 'cm' ? 'Câmara Municipal'
-          : STATE.auSubtype === 'am' ? 'Assembleia Municipal'
-          : 'Assembleia de Freguesia'
+            : STATE.auSubtype === 'am' ? 'Assembleia Municipal'
+              : 'Assembleia de Freguesia'
         )
-      : 'Assembleia da República';
+          : 'Assembleia da República';
     return `Portugal · ${elLabel}`;
   }
 
@@ -157,10 +157,10 @@ function renderResultsPanel() {
   document.getElementById('resultsEmpty')?.classList.add('hidden');
 
   if (dom.resultsTitle) dom.resultsTitle.textContent = scopeData.nome;
-  
+
   const votes = scopeData.votes || {};
   const official = scopeData.official;
-  
+
   if (dom.resultsSubtitle) {
     dom.resultsSubtitle.innerHTML = buildBreadcrumbHtml();
   }
@@ -175,8 +175,7 @@ function renderResultsPanel() {
 
   if (!parties.length) {
     const noElection = (typeof territoryHasNoElection === 'function') && territoryHasNoElection(scopeData.key);
-    dom.resultsContent.innerHTML = `<p style="color:var(--muted)">${
-      noElection ? 'Votação não realizada neste território.' : 'Sem dados para esta seleção.'}</p>`;
+    dom.resultsContent.innerHTML = `<p style="color:var(--muted)">${noElection ? 'Votação não realizada neste território.' : 'Sem dados para esta seleção.'}</p>`;
     dom.resultsMetrics.innerHTML = '';
     return;
   }
@@ -527,11 +526,10 @@ function renderResultsPanel() {
             ${breakdownHtml}
           </div>
         </td>
-        ${showMandatos ? `<td class="align-center cand-votes-text" style="text-align: center; font-variant-numeric: tabular-nums; font-size: 0.88rem; font-weight: 600; vertical-align: middle;">${
-    (seats && typeof eleitosSeatsClickable === 'function' && eleitosSeatsClickable())
-      ? `<button type="button" class="eleitos-seats-btn" data-party="${safeParty}" title="Ver os eleitos de ${safeParty}">${seatsHtml}</button>`
-      : seatsHtml
-  }</td>` : ''}
+        ${showMandatos ? `<td class="align-center cand-votes-text" style="text-align: center; font-variant-numeric: tabular-nums; font-size: 0.88rem; font-weight: 600; vertical-align: middle;">${(seats && typeof eleitosSeatsClickable === 'function' && eleitosSeatsClickable())
+          ? `<button type="button" class="eleitos-seats-btn" data-party="${safeParty}" title="Ver os eleitos de ${safeParty}">${seatsHtml}</button>`
+          : seatsHtml
+        }</td>` : ''}
         <td class="align-right">
           <div style="display: flex; flex-direction: column; align-items: flex-end; justify-content: center; gap: 1px;">
             <span class="cand-votes-text" style="font-size: 0.88rem; font-variant-numeric: tabular-nums; font-weight: 600; color: var(--text-sec);">${fmtInt(v)}</span>
@@ -603,7 +601,7 @@ function renderResultsPanel() {
           <h4 style="margin: 0 0 10px 0; font-size: 0.85rem; font-weight: 700; color: var(--text-main);">Resultados por País</h4>
           <div style="display: flex; flex-direction: column; gap: 8px;">
       `;
-      
+
       const sortedCountries = Object.entries(countries).map(([cName, cData]) => {
         let cTotal = 0;
         Object.values(cData.votes || {}).forEach(v => { cTotal += v; });
@@ -615,7 +613,7 @@ function renderResultsPanel() {
         const cParties = Object.keys(cVotes).sort((x, y) => cVotes[y] - cVotes[x]);
         const winner = cParties[0] || '—';
         const winnerColor = winner !== '—' ? getResolvedPartyColor(winner) : 'var(--muted)';
-        
+
         countriesHtml += `
           <div class="country-row-item" data-country-name="${escapeAttribute(cName)}" style="display: flex; align-items: center; justify-content: space-between; padding: 6px 8px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04); border-radius: var(--radius-lg); cursor: pointer; transition: background 0.2s ease, border-color 0.2s ease;">
             <div style="display: flex; flex-direction: column; gap: 2px;">
@@ -1036,7 +1034,7 @@ document.addEventListener('click', (e) => {
     if (breakdownRow && breakdownRow.classList.contains('paf-breakdown-row')) {
       const isHidden = breakdownRow.style.display === 'none';
       breakdownRow.style.display = isHidden ? 'table-row' : 'none';
-      
+
       const span = toggleBtn.querySelector('span');
       if (span) {
         if (STATE.currentElectionType === 'au') {
@@ -1045,7 +1043,7 @@ document.addEventListener('click', (e) => {
           span.textContent = isHidden ? 'Ocultar composição' : 'Ver composição';
         }
       }
-      
+
       const chevron = toggleBtn.querySelector('.paf-chevron');
       if (chevron) {
         chevron.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
@@ -1061,36 +1059,36 @@ function renderAutarquicasPanel(scopeData) {
 
   const votes = scopeData.votes || {};
   const official = scopeData.official;
-  
+
   dom.resultsBox?.classList.remove('section-hidden');
   document.getElementById('resultsEmpty')?.classList.add('hidden');
 
   if (dom.resultsTitle) dom.resultsTitle.textContent = scopeData.nome;
-  
+
   if (dom.resultsSubtitle) {
     let sub = buildBreadcrumbHtml();
     dom.resultsSubtitle.innerHTML = sub;
   }
-  
+
   let total = 0;
   Object.values(votes).forEach(v => { total += v; });
-  
+
   const parties = Object.keys(votes);
   if (!parties.length) {
     dom.resultsContent.innerHTML = `<p style="color:var(--muted)">Sem dados para esta seleção.</p>`;
     dom.resultsMetrics.innerHTML = '';
     return;
   }
-  
+
   const subType = STATE.auSubtype || 'cm';
   const level = scopeData.level; // 'national' | 'distrito' | 'concelho' | 'freguesia'
-  
+
   let html = '';
-  
+
   const isCM_Aggregate = (subType === 'cm' && (level === 'national' || level === 'distrito'));
   const isAF_Aggregate = (subType === 'af' && (level === 'national' || level === 'distrito' || level === 'concelho'));
   const isAM_Aggregate = (subType === 'am' && (level === 'national' || level === 'distrito'));
-  
+
   if (isCM_Aggregate || isAF_Aggregate) {
     const typeLabel = subType === 'cm' ? 'Câm. (M.A.)' : 'Jun. (M.A.)';
     html += `
@@ -1106,11 +1104,11 @@ function renderAutarquicasPanel(scopeData) {
         </thead>
         <tbody>
     `;
-    
+
     let presidents = null;
     let maiorias = null;
     let mandatos_p = null;
-    
+
     if (level === 'national') {
       presidents = {};
       maiorias = {};
@@ -1127,9 +1125,9 @@ function renderAutarquicasPanel(scopeData) {
       maiorias = entry?.maiorias || {};
       mandatos_p = entry?.mandatos_p || {};
     }
-    
+
     const sortedParties = groupAutarquicasVotes(votes, presidents, maiorias, mandatos_p, level, subType);
-    
+
     sortedParties.forEach((item) => {
       const v = item.votes;
       const pct = total > 0 ? v / total : 0;
@@ -1139,14 +1137,14 @@ function renderAutarquicasPanel(scopeData) {
       const sw = getResolvedPartyColor(item.isGroup ? item.mainParty : item.party);
       const safeParty = escapeAttribute(item.isGroup ? item.mainParty : item.party);
       const fullName = item.isGroup ? '' : (PARTY_FULL_NAMES[getNormalizedPartyColorKey(item.party)] || '');
-      
+
       const toggleHtml = item.isGroup ? `
         <div class="paf-breakdown-toggle" style="margin-top: 4px; font-size: 0.65rem; color: var(--accent); cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-weight: 600; user-select: none; transition: color 0.2s;">
           <span>Ver coligações</span>
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="paf-chevron" style="transition: transform 0.2s;"><polyline points="6 9 12 15 18 9"></polyline></svg>
         </div>
       ` : '';
-      
+
       html += `
         <tr>
           <td class="color-bar-td">
@@ -1176,14 +1174,14 @@ function renderAutarquicasPanel(scopeData) {
           </td>
         </tr>
       `;
-      
+
       if (item.isGroup) {
         let membersRows = '';
         item.members.forEach(member => {
           const memberPct = total > 0 ? member.votes / total : 0;
           const memberSw = getResolvedPartyColor(member.party);
           const memberFullName = PARTY_FULL_NAMES[getNormalizedPartyColorKey(member.party)] || '';
-           membersRows += `
+          membersRows += `
             <tr style="border-bottom: 1px dotted rgba(255,255,255,0.04);">
               <td style="padding: 6px 8px; vertical-align: middle; text-align: left;">
                 <span style="display: inline-block; width: 4px; height: 16px; background-color: ${memberSw}; border-radius: 2px; margin-right: 8px; vertical-align: middle;"></span>
@@ -1203,7 +1201,7 @@ function renderAutarquicasPanel(scopeData) {
             </tr>
           `;
         });
-        
+
         html += `
           <tr class="paf-breakdown-row" style="display: none; background: rgba(255,255,255,0.015);">
             <td colspan="5" style="padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.04);">
@@ -1218,9 +1216,9 @@ function renderAutarquicasPanel(scopeData) {
         `;
       }
     });
-    
+
     html += '</tbody></table>';
-    
+
   } else if (isAM_Aggregate) {
     html += `
       <table class="cand-table" style="width: 100%; border-collapse: collapse; margin-top: 8px; table-layout: auto;">
@@ -1234,7 +1232,7 @@ function renderAutarquicasPanel(scopeData) {
         </thead>
         <tbody>
     `;
-    
+
     let mandatos_p = null;
     if (level === 'national') {
       mandatos_p = {};
@@ -1246,9 +1244,9 @@ function renderAutarquicasPanel(scopeData) {
       const entry = STATE.data?.AGG?.distrito?.[STATE.scope.key];
       mandatos_p = entry?.mandatos_p || {};
     }
-    
+
     const sortedParties = groupAutarquicasVotes(votes, null, null, mandatos_p, level, subType);
-    
+
     sortedParties.forEach((item) => {
       const v = item.votes;
       const pct = total > 0 ? v / total : 0;
@@ -1256,14 +1254,14 @@ function renderAutarquicasPanel(scopeData) {
       const sw = getResolvedPartyColor(item.isGroup ? item.mainParty : item.party);
       const safeParty = escapeAttribute(item.isGroup ? item.mainParty : item.party);
       const fullName = item.isGroup ? '' : (PARTY_FULL_NAMES[getNormalizedPartyColorKey(item.party)] || '');
-      
+
       const toggleHtml = item.isGroup ? `
         <div class="paf-breakdown-toggle" style="margin-top: 4px; font-size: 0.65rem; color: var(--accent); cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-weight: 600; user-select: none; transition: color 0.2s;">
           <span>Ver coligações</span>
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="paf-chevron" style="transition: transform 0.2s;"><polyline points="6 9 12 15 18 9"></polyline></svg>
         </div>
       ` : '';
-      
+
       html += `
         <tr>
           <td class="color-bar-td">
@@ -1290,7 +1288,7 @@ function renderAutarquicasPanel(scopeData) {
           </td>
         </tr>
       `;
-      
+
       if (item.isGroup) {
         let membersRows = '';
         item.members.forEach(member => {
@@ -1314,7 +1312,7 @@ function renderAutarquicasPanel(scopeData) {
             </tr>
           `;
         });
-        
+
         html += `
           <tr class="paf-breakdown-row" style="display: none; background: rgba(255,255,255,0.015);">
             <td colspan="4" style="padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.04);">
@@ -1329,14 +1327,14 @@ function renderAutarquicasPanel(scopeData) {
         `;
       }
     });
-    
+
     html += '</tbody></table>';
-    
+
   } else {
     const mandatosP = official?.mandatos_p || null;
     const showMandatos = !!(mandatosP && Object.keys(mandatosP).length);
     const typeLabel = subType === 'cm' ? 'Vereadores' : (subType === 'am' ? 'Deputados' : 'Mandatos');
-    
+
     html += `
       <table class="cand-table" style="width: 100%; border-collapse: collapse; margin-top: 8px; table-layout: auto;">
         <thead>
@@ -1349,9 +1347,9 @@ function renderAutarquicasPanel(scopeData) {
         </thead>
         <tbody>
     `;
-    
+
     const sortedParties = groupAutarquicasVotes(votes, null, null, mandatosP, level, subType);
-    
+
     sortedParties.forEach((item, idx) => {
       const v = item.votes;
       if (!v) return;
@@ -1360,7 +1358,7 @@ function renderAutarquicasPanel(scopeData) {
       const safeParty = escapeAttribute(item.isGroup ? item.mainParty : item.party);
       const seats = showMandatos ? (item.mandatos || 0) : null;
       let seatsHtml = seats ? fmtInt(seats) : '—';
-      
+
       const isWinner = (idx === 0);
       // em anos sem coluna de mandatos, o badge do vencedor serve de
       // acesso à listagem de eleitos (quando disponível)
@@ -1378,16 +1376,16 @@ function renderAutarquicasPanel(scopeData) {
           badgeHtml = `<span class="badge winner-badge${badgeClickable ? ' eleitos-seats-btn' : ''}"${badgeAttrs} style="background: rgba(16, 185, 129, 0.12); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); font-size: 0.58rem; padding: 2px 6px; border-radius: 4px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; margin-top: 3px; display: inline-block;${badgeCursor}">Presidente da Junta</span>`;
         }
       }
-      
+
       const fullName = item.isGroup ? '' : (PARTY_FULL_NAMES[getNormalizedPartyColorKey(item.party)] || '');
-      
+
       const toggleHtml = item.isGroup ? `
         <div class="paf-breakdown-toggle" style="margin-top: 4px; font-size: 0.65rem; color: var(--accent); cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-weight: 600; user-select: none; transition: color 0.2s;">
           <span>Ver coligações</span>
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="paf-chevron" style="transition: transform 0.2s;"><polyline points="6 9 12 15 18 9"></polyline></svg>
         </div>
       ` : '';
-      
+
       html += `
         <tr>
           <td class="color-bar-td">
@@ -1406,11 +1404,10 @@ function renderAutarquicasPanel(scopeData) {
               ${fullName ? `<span style="font-size: 0.72rem; color: var(--muted); line-height: 1.2; margin-top: 1px;">${escapeHtml(fullName)}</span>` : ''}
             </div>
           </td>
-          ${showMandatos ? `<td class="align-center cand-votes-text" style="text-align: center; font-variant-numeric: tabular-nums; font-size: 0.88rem; font-weight: 600; vertical-align: middle;">${
-    (seats && !item.isGroup && typeof eleitosSeatsClickable === 'function' && eleitosSeatsClickable())
-      ? `<button type="button" class="eleitos-seats-btn" data-party="${escapeAttribute(item.party)}" title="Ver os eleitos de ${escapeAttribute(item.party)}">${seatsHtml}</button>`
-      : seatsHtml
-  }</td>` : ''}
+          ${showMandatos ? `<td class="align-center cand-votes-text" style="text-align: center; font-variant-numeric: tabular-nums; font-size: 0.88rem; font-weight: 600; vertical-align: middle;">${(seats && !item.isGroup && typeof eleitosSeatsClickable === 'function' && eleitosSeatsClickable())
+            ? `<button type="button" class="eleitos-seats-btn" data-party="${escapeAttribute(item.party)}" title="Ver os eleitos de ${escapeAttribute(item.party)}">${seatsHtml}</button>`
+            : seatsHtml
+          }</td>` : ''}
           <td class="align-right">
             <div style="display: flex; flex-direction: column; align-items: flex-end; justify-content: center; gap: 1px;">
               <span class="cand-votes-text" style="font-size: 0.88rem; font-variant-numeric: tabular-nums; font-weight: 600; color: var(--text-sec);">${fmtInt(v)}</span>
@@ -1445,7 +1442,7 @@ function renderAutarquicasPanel(scopeData) {
             </tr>
           `;
         });
-        
+
         html += `
           <tr class="paf-breakdown-row" style="display: none; background: rgba(255,255,255,0.015);">
             <td colspan="${showMandatos ? 4 : 3}" style="padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.04);">
@@ -1460,9 +1457,9 @@ function renderAutarquicasPanel(scopeData) {
         `;
       }
     });
-    
+
     html += '</tbody></table>';
-    
+
     if (subType === 'cm' && level === 'concelho') {
       html += `
         <div style="margin-top: 16px; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 16px; display: flex; justify-content: center;">
@@ -1472,11 +1469,20 @@ function renderAutarquicasPanel(scopeData) {
           </button>
         </div>
       `;
+    } else if (subType === 'am' && level === 'concelho') {
+      html += `
+        <div style="margin-top: 16px; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 16px; display: flex; justify-content: center;">
+          <button id="btnGoToCM" class="button primary" title="Ver os resultados da Câmara Municipal deste concelho" style="font-size: 0.72rem; padding: 8px 16px; border-radius: var(--radius-lg); cursor: pointer; background: rgba(255, 255, 255, 0.05); color: var(--text); border: 1px solid rgba(255,255,255,0.1); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; transition: background 0.2s, border-color 0.2s, color 0.2s; display: inline-flex; align-items: center; gap: 6px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            <span>Ver Câmara Municipal</span>
+          </button>
+        </div>
+      `;
     }
   }
-  
+
   dom.resultsContent.innerHTML = html;
-  
+
   if (subType === 'cm' && level === 'concelho') {
     document.getElementById('btnGoToAM')?.addEventListener('click', () => {
       STATE.auSubtype = 'am';
@@ -1487,11 +1493,21 @@ function renderAutarquicasPanel(scopeData) {
       }
       loadCurrentYear();
     });
+  } else if (subType === 'am' && level === 'concelho') {
+    document.getElementById('btnGoToCM')?.addEventListener('click', () => {
+      STATE.auSubtype = 'cm';
+      if (dom.auSubtypeChips) {
+        dom.auSubtypeChips.querySelectorAll('.chip-button').forEach(btn => {
+          btn.classList.toggle('active', btn.dataset.value === 'cm');
+        });
+      }
+      loadCurrentYear();
+    });
   }
-  
+
   // Custom dashboard styled metrics template using stylesheet classes
   let metricsHtml = '<div class="metrics-grid">';
-  
+
   // Card Helper
   const makeCard = (label, val) => `
     <div class="metric-item">
@@ -1499,29 +1515,29 @@ function renderAutarquicasPanel(scopeData) {
       <strong>${val}</strong>
     </div>
   `;
-  
+
   metricsHtml += makeCard('Votos Válidos', fmtInt(total));
-  
+
   if (official) {
     const inscritos = ensureNumber(official.inscritos);
     const votantes = ensureNumber(official.votantes);
     const brancos = ensureNumber(official.brancos);
     const nulos = ensureNumber(official.nulos);
     const abst = inscritos > 0 ? (inscritos - votantes) / inscritos : null;
-    
+
     metricsHtml += makeCard('Inscritos', fmtInt(inscritos));
     metricsHtml += makeCard('Votantes', `${fmtInt(votantes)}${inscritos > 0 ? ` <span style="font-size: 0.72rem; color: var(--muted); font-weight: 500; display: inline-block; margin-left: 2px;">(${fmtPct(votantes / inscritos)})</span>` : ''}`);
     metricsHtml += makeCard('Abstenção', abst !== null ? fmtPct(abst) : '—');
     metricsHtml += makeCard('Brancos', `${fmtInt(brancos)}${votantes > 0 ? ` <span style="font-size: 0.72rem; color: var(--muted); font-weight: 500; display: inline-block; margin-left: 2px;">(${fmtPct(brancos / votantes)})</span>` : ''}`);
     metricsHtml += makeCard('Nulos', `${fmtInt(nulos)}${votantes > 0 ? ` <span style="font-size: 0.72rem; color: var(--muted); font-weight: 500; display: inline-block; margin-left: 2px;">(${fmtPct(nulos / votantes)})</span>` : ''}`);
-    
+
     const mandatosTotal = official.mandatos;
 
     if (mandatosTotal) {
       metricsHtml += makeCard('Total Mandatos', fmtInt(ensureNumber(mandatosTotal)));
     }
   }
-  
+
   metricsHtml += '</div>';
   dom.resultsMetrics.innerHTML = metricsHtml;
 
