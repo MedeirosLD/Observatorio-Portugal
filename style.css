@@ -862,27 +862,35 @@ body {
 .cand-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.78rem;
+  font-size: 0.82rem;
   font-family: var(--font-main);
-  margin-top: 4px;
+  margin-top: 8px;
 }
 
 .cand-table th {
-  font-size: 0.68rem;
+  font-size: 0.72rem;
   font-weight: 700;
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  padding: 5px 6px;
+  padding: 8px 10px;
   border-bottom: 1px solid var(--border-color);
   background: transparent;
 }
 
 .cand-table td {
-  padding: 5px 6px;
-  border-bottom: 1px solid rgba(125, 125, 125, 0.08);
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(125, 125, 125, 0.05);
   vertical-align: middle;
   background: transparent;
+}
+
+.cand-table tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+.cand-table tbody tr:hover td {
+  background-color: rgba(255, 255, 255, 0.02);
 }
 
 .cand-table tr:last-child td {
@@ -906,31 +914,33 @@ body {
 
 .cand-table td.color-bar-td {
   padding: 0;
-  width: 6px;
+  width: 16px;
   position: relative;
 }
 
 .cand-table .cand-color-bar {
   position: absolute;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  width: 4px !important;
+  top: 6px;
+  bottom: 6px;
+  left: 5px;
+  width: 5px !important;
+  height: auto !important;
   border: none;
+  border-radius: 3px;
   padding: 0;
   margin: 0;
   display: block;
-  transform: none !important;
+  cursor: pointer;
+  transition: opacity 0.15s ease, transform 0.15s ease;
 }
 
 .cand-table button.cand-color-bar {
   cursor: pointer;
-  transition: opacity 0.15s;
 }
 
 .cand-table button.cand-color-bar:hover {
-  opacity: 0.7;
-  transform: none !important;
+  opacity: 0.8;
+  transform: scaleX(1.3);
 }
 
 .cand-table .cand-name-container {
@@ -3014,6 +3024,49 @@ input:disabled {
   font-weight: 600 !important;
 }
 
+#prRoundChips {
+  display: flex;
+  flex-wrap: nowrap !important;
+  flex-shrink: 0 !important;
+  width: 150px !important;
+  background: rgba(125, 125, 125, 0.05);
+  padding: 2px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  gap: 4px;
+  margin-top: 0 !important;
+}
+
+#prRoundChips .chip-button {
+  flex: 1;
+  border: none !important;
+  background: transparent !important;
+  color: var(--muted) !important;
+  font-size: 0.76rem;
+  font-weight: 600;
+  padding: 5px 10px !important;
+  border-radius: var(--radius-md) !important;
+  text-transform: none;
+  letter-spacing: normal;
+  min-height: auto !important;
+  text-align: center;
+  white-space: nowrap;
+}
+
+#prRoundChips .chip-button:hover {
+  color: var(--text) !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-bottom: none !important;
+}
+
+#prRoundChips .chip-button.active {
+  background: var(--card) !important;
+  color: var(--text) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  font-weight: 700 !important;
+  border-bottom: none !important;
+}
+
 /* Make cargo selector chips occupy width naturally */
 #cargoChipsGeneral {
   display: flex;
@@ -3098,27 +3151,36 @@ input:disabled {
   text-align: left !important;
   width: 100% !important;
   font-family: var(--font-title);
-  font-weight: 600;
+  font-weight: 700;
+  font-size: 1.35rem !important;
+  color: var(--text) !important;
 }
 
 .side-right #resultsSubtitle {
   text-align: left !important;
   width: 100% !important;
+  font-size: 0.8rem !important;
+  color: var(--muted) !important;
+  margin-top: 4px !important;
+  line-height: 1.35 !important;
 }
 
-
-/* Align the parent flex container of the results title/subtitle to the left */
-.side-right #resultsBox > div:first-child {
+/* Align the parent flex container of the results title/subtitle and round selector chips */
+.side-right #resultsBox > .results-header-container {
   display: flex !important;
-  justify-content: flex-start !important;
+  justify-content: space-between !important;
+  align-items: flex-start !important;
   text-align: left !important;
   width: 100% !important;
+  gap: 16px !important;
+  margin-bottom: 16px !important;
 }
 
-/* Ensure the text container inside that flex container is aligned left */
-.side-right #resultsBox > div:first-child > div {
+/* Ensure the text container inside that flex container is aligned left and takes available space */
+.side-right #resultsBox > .results-header-container > .results-header-text {
   text-align: left !important;
-  width: 100% !important;
+  flex: 1 !important;
+  min-width: 0 !important;
 }
 
 /* Align the turn tabs to the left next to other controls */

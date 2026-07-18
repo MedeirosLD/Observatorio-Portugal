@@ -76,6 +76,21 @@ function handleBreadcrumbClick(e) {
 
 // ---------- PAINEL ----------
 
+// Chip 1.ª/2.ª volta (só aparece para os anos PR com segunda volta: 1986 e 2026)
+function updatePrRoundChips() {
+  const box = document.getElementById('prRoundChips');
+  if (!box) return;
+  const base = String(STATE.currentYear || '').replace(/_2$/, '');
+  const hasSecondRound = STATE.currentElectionType === 'pr'
+    && PR_YEARS.some((y) => y.value === `${base}_2`);
+  box.style.display = hasSecondRound ? 'flex' : 'none';
+  if (!hasSecondRound) return;
+  const activeRound = STATE.currentYear.endsWith('_2') ? '2' : '1';
+  box.querySelectorAll('.chip-button').forEach((btn) => {
+    btn.classList.toggle('active', btn.dataset.round === activeRound);
+  });
+}
+
 function renderResultsPanel() {
   if (!dom.resultsContent || !STATE.data) return;
   initializeCandidateColorUI();
@@ -128,6 +143,7 @@ function renderResultsPanel() {
   if (!scopeData) return;
 
   if (typeof updateMobileFilterSummary === 'function') updateMobileFilterSummary();
+  updatePrRoundChips();
   // Perfil do território (censo INE) desativado por agora — dados e código mantidos.
   // Para reativar: descomentar a linha abaixo (dados em dados/censo/, ETL em etl/build_censo.py).
   // renderTerritoryProfile(STATE.scope);
@@ -146,11 +162,7 @@ function renderResultsPanel() {
   const official = scopeData.official;
   
   if (dom.resultsSubtitle) {
-    let sub = buildBreadcrumbHtml();
-    if (official?.isGlobal) {
-      sub += ' <span style="font-size:0.75rem; opacity:0.65; font-style:italic; display:inline-block; margin-left:4px;">(inclui círculos da emigração)</span>';
-    }
-    dom.resultsSubtitle.innerHTML = sub;
+    dom.resultsSubtitle.innerHTML = buildBreadcrumbHtml();
   }
 
   const mandatosP = official?.mandatos_p || null;
@@ -499,31 +511,31 @@ function renderResultsPanel() {
     }
 
     html += `
-      <tr data-cand-partido="${safeParty}" style="border-bottom: 1px solid rgba(255,255,255,0.03);">
-        <td class="color-bar-td" style="width: 16px; padding: 5px 0;">
+      <tr data-cand-partido="${safeParty}">
+        <td class="color-bar-td">
           <button type="button" class="swatch-button cand-color-bar"
-               style="background-color: ${sw}; width: 6px; height: 26px; border: none; border-radius: 3px; cursor: pointer; padding: 0; display: block;"
+               style="background-color: ${sw};"
                data-candidate-name="${safeParty}"
                data-candidate-party="${escapeAttribute(STATE.currentElectionType === 'pr' ? fullName : party)}"
                data-current-color="${sw}"
                title="Personalizar cor do partido"></button>
         </td>
-        <td class="align-left" style="padding: 5px 6px; vertical-align: middle;">
+        <td class="align-left">
           <div style="display: flex; flex-direction: column; gap: 2px; align-items: flex-start; justify-content: center; min-width: 0;">
-            <span class="cand-name-text" style="font-size: 0.82rem; font-weight: 700; color: var(--text); line-height: 1.2; word-break: break-word;">${escapeHtml(party)}</span>
-            ${fullName ? `<span style="font-size: 0.65rem; color: var(--muted); line-height: 1.2;">${escapeHtml(fullName)}</span>` : ''}
+            <span class="cand-name-text" style="font-size: 0.88rem; font-weight: 600; color: var(--text); line-height: 1.25; word-break: break-word;">${escapeHtml(party)}</span>
+            ${fullName ? `<span style="font-size: 0.72rem; color: var(--muted); line-height: 1.2; margin-top: 1px;">${escapeHtml(fullName)}</span>` : ''}
             ${breakdownHtml}
           </div>
         </td>
-        ${showMandatos ? `<td class="align-center cand-votes-text" style="text-align: center; font-variant-numeric: tabular-nums; font-size: 0.82rem; font-weight: 500; vertical-align: middle;">${
+        ${showMandatos ? `<td class="align-center cand-votes-text" style="text-align: center; font-variant-numeric: tabular-nums; font-size: 0.88rem; font-weight: 600; vertical-align: middle;">${
     (seats && typeof eleitosSeatsClickable === 'function' && eleitosSeatsClickable())
       ? `<button type="button" class="eleitos-seats-btn" data-party="${safeParty}" title="Ver os eleitos de ${safeParty}">${seatsHtml}</button>`
       : seatsHtml
   }</td>` : ''}
-        <td class="align-right" style="text-align: right; vertical-align: middle; padding-right: 8px;">
+        <td class="align-right">
           <div style="display: flex; flex-direction: column; align-items: flex-end; justify-content: center; gap: 1px;">
-            <span class="cand-votes-text" style="font-size: 0.82rem; font-variant-numeric: tabular-nums; font-weight: 500; color: var(--text-sec);">${fmtInt(v)}</span>
-            <span style="font-size: 0.72rem; color: var(--muted); font-weight: 600; font-variant-numeric: tabular-nums;">${fmtPct(pct)}</span>
+            <span class="cand-votes-text" style="font-size: 0.88rem; font-variant-numeric: tabular-nums; font-weight: 600; color: var(--text-sec);">${fmtInt(v)}</span>
+            <span style="font-size: 0.72rem; color: var(--muted); font-weight: 500; font-variant-numeric: tabular-nums;">${fmtPct(pct)}</span>
           </div>
         </td>
       </tr>
@@ -1136,30 +1148,30 @@ function renderAutarquicasPanel(scopeData) {
       ` : '';
       
       html += `
-        <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
-          <td class="color-bar-td" style="width: 16px; padding: 5px 0;">
+        <tr>
+          <td class="color-bar-td">
             <button type="button" class="swatch-button cand-color-bar"
-                 style="background-color: ${sw}; width: 6px; height: 26px; border: none; border-radius: 3px; cursor: pointer; padding: 0; display: block;"
+                 style="background-color: ${sw};"
                  data-candidate-name="${safeParty}"
                  data-candidate-party="${escapeAttribute(item.party)}"
                  data-current-color="${sw}"
                  title="Personalizar cor do partido"></button>
           </td>
-          <td class="align-left" style="padding: 5px 6px; vertical-align: middle;">
+          <td class="align-left">
             <div style="display: flex; flex-direction: column; gap: 2px; align-items: flex-start; justify-content: center; min-width: 0;">
-              <span class="cand-name-text" style="font-size: 0.82rem; font-weight: 700; color: var(--text); line-height: 1.2; word-break: break-word;">${escapeHtml(item.party)}</span>
+              <span class="cand-name-text" style="font-size: 0.88rem; font-weight: 600; color: var(--text); line-height: 1.25; word-break: break-word;">${escapeHtml(item.party)}</span>
               ${toggleHtml}
-              ${fullName ? `<span style="font-size: 0.65rem; color: var(--muted); line-height: 1.2;">${escapeHtml(fullName)}</span>` : ''}
+              ${fullName ? `<span style="font-size: 0.72rem; color: var(--muted); line-height: 1.2; margin-top: 1px;">${escapeHtml(fullName)}</span>` : ''}
             </div>
           </td>
-          <td class="align-center cand-votes-text" style="text-align: center; font-variant-numeric: tabular-nums; font-size: 0.82rem; font-weight: 600; vertical-align: middle;">
+          <td class="align-center cand-votes-text" style="text-align: center; font-variant-numeric: tabular-nums; font-size: 0.88rem; font-weight: 600; vertical-align: middle;">
             ${pCount}<span style="font-size: 0.72rem; color: var(--muted); font-weight: 400; margin-left: 2px;">(${mCount})</span>
           </td>
-          <td class="align-center cand-votes-text" style="text-align: center; font-variant-numeric: tabular-nums; font-size: 0.82rem; font-weight: 500; vertical-align: middle;">${fmtInt(mSeats)}</td>
-          <td class="align-right" style="text-align: right; vertical-align: middle; padding-right: 8px;">
+          <td class="align-center cand-votes-text" style="text-align: center; font-variant-numeric: tabular-nums; font-size: 0.88rem; font-weight: 600; vertical-align: middle;">${fmtInt(mSeats)}</td>
+          <td class="align-right">
             <div style="display: flex; flex-direction: column; align-items: flex-end; justify-content: center; gap: 1px;">
-              <span class="cand-votes-text" style="font-size: 0.82rem; font-variant-numeric: tabular-nums; font-weight: 500; color: var(--text-sec);">${fmtInt(v)}</span>
-              <span style="font-size: 0.72rem; color: var(--muted); font-weight: 600; font-variant-numeric: tabular-nums;">${fmtPct(pct)}</span>
+              <span class="cand-votes-text" style="font-size: 0.88rem; font-variant-numeric: tabular-nums; font-weight: 600; color: var(--text-sec);">${fmtInt(v)}</span>
+              <span style="font-size: 0.72rem; color: var(--muted); font-weight: 500; font-variant-numeric: tabular-nums;">${fmtPct(pct)}</span>
             </div>
           </td>
         </tr>
@@ -1171,21 +1183,21 @@ function renderAutarquicasPanel(scopeData) {
           const memberPct = total > 0 ? member.votes / total : 0;
           const memberSw = getResolvedPartyColor(member.party);
           const memberFullName = PARTY_FULL_NAMES[getNormalizedPartyColorKey(member.party)] || '';
-          membersRows += `
-            <tr style="border-bottom: 1px dotted rgba(255,255,255,0.02);">
-              <td style="padding: 6px 0; vertical-align: middle; text-align: left;">
-                <span style="display: inline-block; width: 4px; height: 16px; background-color: ${memberSw}; border-radius: 0; margin-right: 6px; vertical-align: middle;"></span>
-                <span style="font-weight: 600; color: var(--text); font-size: 0.78rem; vertical-align: middle;">${escapeHtml(member.party)}</span>
-                ${memberFullName ? `<div style="font-size: 0.65rem; color: var(--muted); padding-left: 10px;">${escapeHtml(memberFullName)}</div>` : ''}
+           membersRows += `
+            <tr style="border-bottom: 1px dotted rgba(255,255,255,0.04);">
+              <td style="padding: 6px 8px; vertical-align: middle; text-align: left;">
+                <span style="display: inline-block; width: 4px; height: 16px; background-color: ${memberSw}; border-radius: 2px; margin-right: 8px; vertical-align: middle;"></span>
+                <span style="font-weight: 600; color: var(--text); font-size: 0.8rem; vertical-align: middle;">${escapeHtml(member.party)}</span>
+                ${memberFullName ? `<div style="font-size: 0.7rem; color: var(--muted); padding-left: 12px; margin-top: 1px;">${escapeHtml(memberFullName)}</div>` : ''}
               </td>
-              <td style="text-align: center; font-variant-numeric: tabular-nums; font-size: 0.78rem; font-weight: 500; color: var(--text-sec); vertical-align: middle;">
-                ${member.presidents}<span style="font-size: 0.68rem; color: var(--muted); font-weight: 400; margin-left: 2px;">(${member.maiorias})</span>
+              <td style="text-align: center; font-variant-numeric: tabular-nums; font-size: 0.8rem; font-weight: 500; color: var(--text-sec); vertical-align: middle;">
+                ${member.presidents}<span style="font-size: 0.7rem; color: var(--muted); font-weight: 400; margin-left: 2px;">(${member.maiorias})</span>
               </td>
-              <td style="text-align: center; font-variant-numeric: tabular-nums; font-size: 0.78rem; font-weight: 500; color: var(--text-sec); vertical-align: middle;">${fmtInt(member.mandatos)}</td>
-              <td style="text-align: right; vertical-align: middle; padding-right: 8px;">
+              <td style="text-align: center; font-variant-numeric: tabular-nums; font-size: 0.8rem; font-weight: 500; color: var(--text-sec); vertical-align: middle;">${fmtInt(member.mandatos)}</td>
+              <td style="text-align: right; vertical-align: middle;">
                 <div style="display: flex; flex-direction: column; align-items: flex-end; justify-content: center; gap: 1px;">
-                  <span style="font-size: 0.78rem; font-variant-numeric: tabular-nums; font-weight: 500; color: var(--text-sec);">${fmtInt(member.votes)}</span>
-                  <span style="font-size: 0.68rem; color: var(--muted); font-variant-numeric: tabular-nums;">${fmtPct(memberPct)}</span>
+                  <span style="font-size: 0.8rem; font-variant-numeric: tabular-nums; font-weight: 500; color: var(--text-sec);">${fmtInt(member.votes)}</span>
+                  <span style="font-size: 0.7rem; color: var(--muted); font-variant-numeric: tabular-nums; font-weight: 500;">${fmtPct(memberPct)}</span>
                 </div>
               </td>
             </tr>
@@ -1253,27 +1265,27 @@ function renderAutarquicasPanel(scopeData) {
       ` : '';
       
       html += `
-        <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
-          <td class="color-bar-td" style="width: 16px; padding: 5px 0;">
+        <tr>
+          <td class="color-bar-td">
             <button type="button" class="swatch-button cand-color-bar"
-                 style="background-color: ${sw}; width: 6px; height: 26px; border: none; border-radius: 3px; cursor: pointer; padding: 0; display: block;"
+                 style="background-color: ${sw};"
                  data-candidate-name="${safeParty}"
                  data-candidate-party="${escapeAttribute(item.party)}"
                  data-current-color="${sw}"
                  title="Personalizar cor do partido"></button>
           </td>
-          <td class="align-left" style="padding: 5px 6px; vertical-align: middle;">
+          <td class="align-left">
             <div style="display: flex; flex-direction: column; gap: 2px; align-items: flex-start; justify-content: center; min-width: 0;">
-              <span class="cand-name-text" style="font-size: 0.82rem; font-weight: 700; color: var(--text); line-height: 1.2; word-break: break-word;">${escapeHtml(item.party)}</span>
+              <span class="cand-name-text" style="font-size: 0.88rem; font-weight: 600; color: var(--text); line-height: 1.25; word-break: break-word;">${escapeHtml(item.party)}</span>
               ${toggleHtml}
-              ${fullName ? `<span style="font-size: 0.65rem; color: var(--muted); line-height: 1.2;">${escapeHtml(fullName)}</span>` : ''}
+              ${fullName ? `<span style="font-size: 0.72rem; color: var(--muted); line-height: 1.2; margin-top: 1px;">${escapeHtml(fullName)}</span>` : ''}
             </div>
           </td>
-          <td class="align-center cand-votes-text" style="text-align: center; font-variant-numeric: tabular-nums; font-size: 0.82rem; font-weight: 500; vertical-align: middle;">${fmtInt(mSeats)}</td>
-          <td class="align-right" style="text-align: right; vertical-align: middle; padding-right: 8px;">
+          <td class="align-center cand-votes-text" style="text-align: center; font-variant-numeric: tabular-nums; font-size: 0.88rem; font-weight: 600; vertical-align: middle;">${fmtInt(mSeats)}</td>
+          <td class="align-right">
             <div style="display: flex; flex-direction: column; align-items: flex-end; justify-content: center; gap: 1px;">
-              <span class="cand-votes-text" style="font-size: 0.82rem; font-variant-numeric: tabular-nums; font-weight: 500; color: var(--text-sec);">${fmtInt(v)}</span>
-              <span style="font-size: 0.72rem; color: var(--muted); font-weight: 600; font-variant-numeric: tabular-nums;">${fmtPct(pct)}</span>
+              <span class="cand-votes-text" style="font-size: 0.88rem; font-variant-numeric: tabular-nums; font-weight: 600; color: var(--text-sec);">${fmtInt(v)}</span>
+              <span style="font-size: 0.72rem; color: var(--muted); font-weight: 500; font-variant-numeric: tabular-nums;">${fmtPct(pct)}</span>
             </div>
           </td>
         </tr>
@@ -1286,17 +1298,17 @@ function renderAutarquicasPanel(scopeData) {
           const memberSw = getResolvedPartyColor(member.party);
           const memberFullName = PARTY_FULL_NAMES[getNormalizedPartyColorKey(member.party)] || '';
           membersRows += `
-            <tr style="border-bottom: 1px dotted rgba(255,255,255,0.02);">
-              <td style="padding: 6px 0; vertical-align: middle; text-align: left;">
-                <span style="display: inline-block; width: 4px; height: 16px; background-color: ${memberSw}; border-radius: 0; margin-right: 6px; vertical-align: middle;"></span>
-                <span style="font-weight: 600; color: var(--text); font-size: 0.78rem; vertical-align: middle;">${escapeHtml(member.party)}</span>
-                ${memberFullName ? `<div style="font-size: 0.65rem; color: var(--muted); padding-left: 10px;">${escapeHtml(memberFullName)}</div>` : ''}
+            <tr style="border-bottom: 1px dotted rgba(255,255,255,0.04);">
+              <td style="padding: 6px 8px; vertical-align: middle; text-align: left;">
+                <span style="display: inline-block; width: 4px; height: 16px; background-color: ${memberSw}; border-radius: 2px; margin-right: 8px; vertical-align: middle;"></span>
+                <span style="font-weight: 600; color: var(--text); font-size: 0.8rem; vertical-align: middle;">${escapeHtml(member.party)}</span>
+                ${memberFullName ? `<div style="font-size: 0.7rem; color: var(--muted); padding-left: 12px; margin-top: 1px;">${escapeHtml(memberFullName)}</div>` : ''}
               </td>
-              <td style="text-align: center; font-variant-numeric: tabular-nums; font-size: 0.78rem; font-weight: 500; color: var(--text-sec); vertical-align: middle;">${fmtInt(member.mandatos)}</td>
-              <td style="text-align: right; vertical-align: middle; padding-right: 8px;">
+              <td style="text-align: center; font-variant-numeric: tabular-nums; font-size: 0.8rem; font-weight: 500; color: var(--text-sec); vertical-align: middle;">${fmtInt(member.mandatos)}</td>
+              <td style="text-align: right; vertical-align: middle;">
                 <div style="display: flex; flex-direction: column; align-items: flex-end; justify-content: center; gap: 1px;">
-                  <span style="font-size: 0.78rem; font-variant-numeric: tabular-nums; font-weight: 500; color: var(--text-sec);">${fmtInt(member.votes)}</span>
-                  <span style="font-size: 0.68rem; color: var(--muted); font-variant-numeric: tabular-nums;">${fmtPct(memberPct)}</span>
+                  <span style="font-size: 0.8rem; font-variant-numeric: tabular-nums; font-weight: 500; color: var(--text-sec);">${fmtInt(member.votes)}</span>
+                  <span style="font-size: 0.7rem; color: var(--muted); font-variant-numeric: tabular-nums; font-weight: 500;">${fmtPct(memberPct)}</span>
                 </div>
               </td>
             </tr>
@@ -1377,32 +1389,32 @@ function renderAutarquicasPanel(scopeData) {
       ` : '';
       
       html += `
-        <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
-          <td class="color-bar-td" style="width: 16px; padding: 5px 0;">
+        <tr>
+          <td class="color-bar-td">
             <button type="button" class="swatch-button cand-color-bar"
-                 style="background-color: ${sw}; width: 6px; height: 26px; border: none; border-radius: 3px; cursor: pointer; padding: 0; display: block;"
+                 style="background-color: ${sw};"
                  data-candidate-name="${safeParty}"
                  data-candidate-party="${escapeAttribute(item.party)}"
                  data-current-color="${sw}"
                  title="Personalizar cor do partido"></button>
           </td>
-          <td class="align-left" style="padding: 5px 6px; vertical-align: middle;">
+          <td class="align-left">
             <div style="display: flex; flex-direction: column; gap: 3px; align-items: flex-start; justify-content: center; min-width: 0;">
-              <span class="cand-name-text" style="font-size: 0.82rem; font-weight: 700; color: var(--text); line-height: 1.25; word-break: break-word;">${escapeHtml(item.party)}</span>
+              <span class="cand-name-text" style="font-size: 0.88rem; font-weight: 600; color: var(--text); line-height: 1.25; word-break: break-word;">${escapeHtml(item.party)}</span>
               ${badgeHtml}
               ${toggleHtml}
-              ${fullName ? `<span style="font-size: 0.65rem; color: var(--muted); line-height: 1.2;">${escapeHtml(fullName)}</span>` : ''}
+              ${fullName ? `<span style="font-size: 0.72rem; color: var(--muted); line-height: 1.2; margin-top: 1px;">${escapeHtml(fullName)}</span>` : ''}
             </div>
           </td>
-          ${showMandatos ? `<td class="align-center cand-votes-text" style="text-align: center; font-variant-numeric: tabular-nums; font-size: 0.82rem; font-weight: 500; vertical-align: middle;">${
+          ${showMandatos ? `<td class="align-center cand-votes-text" style="text-align: center; font-variant-numeric: tabular-nums; font-size: 0.88rem; font-weight: 600; vertical-align: middle;">${
     (seats && !item.isGroup && typeof eleitosSeatsClickable === 'function' && eleitosSeatsClickable())
       ? `<button type="button" class="eleitos-seats-btn" data-party="${escapeAttribute(item.party)}" title="Ver os eleitos de ${escapeAttribute(item.party)}">${seatsHtml}</button>`
       : seatsHtml
   }</td>` : ''}
-          <td class="align-right" style="text-align: right; vertical-align: middle; padding-right: 8px;">
+          <td class="align-right">
             <div style="display: flex; flex-direction: column; align-items: flex-end; justify-content: center; gap: 1px;">
-              <span class="cand-votes-text" style="font-size: 0.82rem; font-variant-numeric: tabular-nums; font-weight: 500; color: var(--text-sec);">${fmtInt(v)}</span>
-              <span style="font-size: 0.72rem; color: var(--muted); font-weight: 600; font-variant-numeric: tabular-nums;">${fmtPct(pct)}</span>
+              <span class="cand-votes-text" style="font-size: 0.88rem; font-variant-numeric: tabular-nums; font-weight: 600; color: var(--text-sec);">${fmtInt(v)}</span>
+              <span style="font-size: 0.72rem; color: var(--muted); font-weight: 500; font-variant-numeric: tabular-nums;">${fmtPct(pct)}</span>
             </div>
           </td>
         </tr>
@@ -1415,19 +1427,19 @@ function renderAutarquicasPanel(scopeData) {
           const memberSw = getResolvedPartyColor(member.party);
           const memberFullName = PARTY_FULL_NAMES[getNormalizedPartyColorKey(member.party)] || '';
           membersRows += `
-            <tr style="border-bottom: 1px dotted rgba(255,255,255,0.02);">
-              <td style="padding: 6px 0; vertical-align: middle; text-align: left;">
-                <span style="display: inline-block; width: 4px; height: 16px; background-color: ${memberSw}; border-radius: 0; margin-right: 6px; vertical-align: middle;"></span>
-                <span style="font-weight: 600; color: var(--text); font-size: 0.78rem; vertical-align: middle;">${escapeHtml(member.party)}</span>
-                ${memberFullName ? `<div style="font-size: 0.65rem; color: var(--muted); padding-left: 10px;">${escapeHtml(memberFullName)}</div>` : ''}
+            <tr style="border-bottom: 1px dotted rgba(255,255,255,0.04);">
+              <td style="padding: 6px 8px; vertical-align: middle; text-align: left;">
+                <span style="display: inline-block; width: 4px; height: 16px; background-color: ${memberSw}; border-radius: 2px; margin-right: 8px; vertical-align: middle;"></span>
+                <span style="font-weight: 600; color: var(--text); font-size: 0.8rem; vertical-align: middle;">${escapeHtml(member.party)}</span>
+                ${memberFullName ? `<div style="font-size: 0.7rem; color: var(--muted); padding-left: 12px; margin-top: 1px;">${escapeHtml(memberFullName)}</div>` : ''}
               </td>
               ${showMandatos ? `
-                <td style="text-align: center; font-variant-numeric: tabular-nums; font-size: 0.78rem; font-weight: 500; color: var(--text-sec); vertical-align: middle;">${fmtInt(member.mandatos)}</td>
+                <td style="text-align: center; font-variant-numeric: tabular-nums; font-size: 0.8rem; font-weight: 500; color: var(--text-sec); vertical-align: middle;">${fmtInt(member.mandatos)}</td>
               ` : ''}
-              <td style="text-align: right; vertical-align: middle; padding-right: 8px;">
+              <td style="text-align: right; vertical-align: middle;">
                 <div style="display: flex; flex-direction: column; align-items: flex-end; justify-content: center; gap: 1px;">
-                  <span style="font-size: 0.78rem; font-variant-numeric: tabular-nums; font-weight: 500; color: var(--text-sec);">${fmtInt(member.votes)}</span>
-                  <span style="font-size: 0.68rem; color: var(--muted); font-variant-numeric: tabular-nums;">${fmtPct(memberPct)}</span>
+                  <span style="font-size: 0.8rem; font-variant-numeric: tabular-nums; font-weight: 500; color: var(--text-sec);">${fmtInt(member.votes)}</span>
+                  <span style="font-size: 0.7rem; color: var(--muted); font-variant-numeric: tabular-nums; font-weight: 500;">${fmtPct(memberPct)}</span>
                 </div>
               </td>
             </tr>

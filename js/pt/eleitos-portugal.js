@@ -113,6 +113,33 @@ function eleitosExpansionShell(titulo, bodyHtml, year) {
     <div style="font-size: 0.62rem; color: var(--muted); font-style: italic; margin-top: 8px; text-align: left;">${escapeHtml(eleitosFonte(year))}</div>`;
 }
 
+function getMatchingSiglasForParty(party, year) {
+  const y = Number(year);
+  const siglas = [party];
+  if (party === 'AD') {
+    if (y === 2024 || y === 2025) {
+      siglas.push('AD Açores', 'PSD-CDS-PPM', 'PSD-CDS', 'Madeira Primeiro', 'PPD/PSD-CDS-PP');
+    } else if (y === 1979 || y === 1980) {
+      siglas.push('PPD/PSD', 'PSD', 'PPD', 'CDS');
+    }
+  } else if (party === 'PPD/PSD' || party === 'PSD') {
+    if (y === 2022) {
+      siglas.push('Madeira Primeiro', 'AD Açores', 'PSD-CDS-PPM', 'PSD-CDS');
+    } else if (y === 2015) {
+      siglas.push('PàF', 'Aliança Açores', 'CDS-PP.PPM');
+    }
+  } else if (party === 'PàF') {
+    if (y === 2015) {
+      siglas.push('PPD/PSD', 'PSD', 'CDS-PP', 'Aliança Açores', 'CDS-PP.PPM');
+    }
+  } else if (party === 'FRS') {
+    if (y === 1980) {
+      siglas.push('PS');
+    }
+  }
+  return siglas;
+}
+
 // HTML interno da linha expandida com os eleitos do partido no âmbito atual;
 // devolve null quando não há lista para este partido/âmbito
 function buildEleitosPartyHtml(party, data, elType, subtype, scope) {
@@ -122,21 +149,29 @@ function buildEleitosPartyHtml(party, data, elType, subtype, scope) {
     // secções por círculo, respeitando o filtro NUTS ativo (códigos numéricos)
     let body = '';
     let totalNomes = 0;
+    const matchingSiglas = getMatchingSiglasForParty(party, data.year);
     Object.keys(data.circulos).forEach(code => {
       if (STATE.currentNuts && window.isConcelhoInNuts && /^\d+$/.test(code)) {
         if (!window.isConcelhoInNuts(code + '00')) return;
       }
       const c = data.circulos[code];
-      const lista = (c.listas || []).find(l => l.sigla === party);
-      if (!lista || !lista.eleitos.length) return;
-      totalNomes += lista.eleitos.length;
+      const matchingListas = (c.listas || []).filter(l => matchingSiglas.includes(l.sigla));
+      if (!matchingListas.length) return;
+
+      let circleEleitos = [];
+      matchingListas.forEach(l => {
+        circleEleitos = circleEleitos.concat(l.eleitos || []);
+      });
+      if (!circleEleitos.length) return;
+
+      totalNomes += circleEleitos.length;
       body += `
         <div style="margin-bottom: 4px;">
           <div style="display: flex; align-items: baseline; gap: 8px; padding: 4px 0 1px;">
             <span style="font-size: 0.75rem; font-weight: 600; color: var(--text-sec);">${escapeHtml(c.nome)}</span>
-            <span style="margin-left: auto; font-size: 0.68rem; color: var(--muted); font-variant-numeric: tabular-nums;">${lista.eleitos.length}</span>
+            <span style="margin-left: auto; font-size: 0.68rem; color: var(--muted); font-variant-numeric: tabular-nums;">${circleEleitos.length}</span>
           </div>
-          ${eleitosOlHtml(lista.eleitos)}
+          ${eleitosOlHtml(circleEleitos)}
         </div>`;
     });
     if (!body) return null;

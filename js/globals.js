@@ -117,6 +117,7 @@ const PARTY_COLORS = new Map(Object.entries({
   'CDS': '#0069b4',       // CDS / CDS-PP
   'PAN': '#0f7d64',
   'L': '#3fbf77',         // Livre
+  'L/TDA': '#3FBF77',     // Livre / Tempo de Avançar
   'PPM': '#4040a0',
   'JPP': '#00a0a0',       // Juntos pelo Povo
   'ADN': '#5a6b7a',
@@ -379,7 +380,7 @@ function getResolvedPartyColor(partido) {
   if (STATE.currentElectionType === 'pr') {
     if (CUSTOM_CANDIDATE_COLORS.has(partido)) return CUSTOM_CANDIDATE_COLORS.get(partido);
     const cor = STATE.data?.METADATA?.parties?.[partido]?.cor;
-    return cor || DEFAULT_SWATCH;
+    return cor || getDynamicPartyColor(partido);
   }
   const key = getNormalizedPartyColorKey(partido);
   if (CUSTOM_PARTY_COLORS.has(key)) return CUSTOM_PARTY_COLORS.get(key);
@@ -391,11 +392,7 @@ function getResolvedPartyColor(partido) {
   const officialColor = PARTY_COLORS.get(key);
   if (officialColor) return officialColor;
   
-  if (STATE.currentElectionType === 'au') {
-    return getDynamicPartyColor(key);
-  }
-  
-  return DEFAULT_SWATCH;
+  return getDynamicPartyColor(key);
 }
 
 function getColorForCandidate(nome, partido) {

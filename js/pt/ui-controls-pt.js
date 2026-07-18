@@ -120,10 +120,12 @@ function populateYearSelect(availableYears) {
     : AR_YEARS;
   sel.innerHTML = '';
   list.forEach(({ value, label }) => {
+    // 2.ª volta (PR) não entra no seletor de Ano — tem chip próprio no painel de resultados
+    if (STATE.currentElectionType === 'pr' && value.endsWith('_2')) return;
     if (availableYears && !availableYears.includes(value)) return;
     const opt = document.createElement('option');
     opt.value = value;
-    opt.textContent = label;
+    opt.textContent = STATE.currentElectionType === 'pr' ? label.replace(/ \(1\.ª volta\)$/, '') : label;
     sel.appendChild(opt);
   });
   sel.value = STATE.currentYear;
@@ -297,6 +299,16 @@ function setupControls() {
         window.syncMapLevelChips();
       }
       
+      loadCurrentYear();
+    });
+  });
+
+  document.getElementById('prRoundChips')?.querySelectorAll('.chip-button').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const base = String(STATE.currentYear || '').replace(/_2$/, '');
+      const target = btn.dataset.round === '2' ? `${base}_2` : base;
+      if (target === STATE.currentYear) return;
+      STATE.currentYear = target;
       loadCurrentYear();
     });
   });

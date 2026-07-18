@@ -13,7 +13,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@300;400;500;600;700;800&family=Spectral:ital,wght@0,500;0,600;0,700;1,500&display=swap"
     rel="stylesheet">
 
-  <link rel="stylesheet" href="style.css?v=20260718a" />
+  <link rel="stylesheet" href="style.css?v=20260718b" />
 </head>
 
 <body data-theme="dark">
@@ -25,6 +25,14 @@
       <span class="toolbar-page">Visualizador Eleitoral</span>
     </div>
     <div class="toolbar-right">
+      <a href="https://docs.google.com/forms/d/e/1FAIpQLSfE3CCKFG4sWUr_CMR4iRhG3Q8TETlBSRAU4C9RA80o_Qt4-A/viewform?usp=publish-editor"
+        target="_blank" rel="noopener noreferrer" class="toolbar-link" title="Erros e Sugestões">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+        </svg>
+        <span>Erros e Sugestões</span>
+      </a>
       <button id="btnAppGuide" class="toolbar-link" title="Guia de Utilização">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
           stroke-linecap="round" stroke-linejoin="round">
@@ -323,11 +331,15 @@
       <div class="body">
 
         <div class="section section-hidden" id="resultsBox">
-          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 12px;">
-            <div>
+          <div class="results-header-container">
+            <div class="results-header-text">
               <h3 id="resultsTitle" style="margin:0; font-size: 1.15rem; line-height: 1.3;">Resultados</h3>
               <small id="resultsSubtitle"
                 style="color:var(--muted); font-size:0.8rem; display:block; margin-top:2px;"></small>
+            </div>
+            <div class="chip-group" id="prRoundChips" style="display:none;">
+              <button class="chip-button" data-round="1" title="1.ª volta">1.ª volta</button>
+              <button class="chip-button" data-round="2" title="2.ª volta">2.ª volta</button>
             </div>
           </div>
 
@@ -474,6 +486,7 @@
           <li>A soma nacional territorial não inclui os votos consulares — estes constam dos círculos
             Europa / Fora da Europa.</li>
           <li>As ilhas (Madeira e Açores) são mostradas deslocadas junto ao continente para facilitar a leitura.</li>
+          <li>A localização e os limites das freguesias têm carácter exclusivamente referencial e de apoio. Nos casos de delimitações históricas, a representação apresentada pode não refletir com total rigor os limites administrativos vigentes à data.</li>
         </ul>
 
         <h4>Contacto</h4>
@@ -482,6 +495,12 @@
             rel="noopener noreferrer">@luizdaniel__</a> (via DM)<br>
           <strong>E-mail:</strong> medeirosld28@gmail.com
         </p>
+
+        <h4>Fontes e Créditos</h4>
+        <ul>
+          <li><strong>Dados Eleitorais:</strong> Secretaria-Geral do Ministério da Administração Interna (SGMAI) e Comissão Nacional de Eleições (CNE).</li>
+          <li><strong>Limites Geográficos e Mapas:</strong> Direção-Geral do Território (DGT) — Carta Administrativa Oficial de Portugal (CAOP) e Instituto Nacional de Estatística (INE) para a atribuição de códigos territoriais de referência (DICOFRE).</li>
+        </ul>
       </div>
     </div>
   </div>
@@ -566,9 +585,9 @@
   <script src="js/pt/data-portugal.js?v=20260716a"></script>
   <script src="js/pt/eleitos-portugal.js?v=20260715a"></script>
   <script src="js/pt/map-render-pt.js?v=20260715e"></script>
-  <script src="js/pt/results-panel-pt.js?v=20260717b"></script>
+  <script src="js/pt/results-panel-pt.js?v=20260718a"></script>
   <script src="js/pt/block-definer-pt.js?v=20260715a"></script>
-  <script src="js/pt/ui-controls-pt.js?v=20260715e"></script>
+  <script src="js/pt/ui-controls-pt.js?v=20260718a"></script>
   <script src="js/ui-helpers.js?v=20260715d"></script>
 
   <script>
