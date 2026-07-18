@@ -128,6 +128,9 @@ function renderResultsPanel() {
   if (!scopeData) return;
 
   if (typeof updateMobileFilterSummary === 'function') updateMobileFilterSummary();
+  // Perfil do território (censo INE) desativado por agora — dados e código mantidos.
+  // Para reativar: descomentar a linha abaixo (dados em dados/censo/, ETL em etl/build_censo.py).
+  // renderTerritoryProfile(STATE.scope);
 
   if (STATE.currentElectionType === 'au') {
     renderAutarquicasPanel(scopeData);
@@ -633,6 +636,143 @@ function renderResultsPanel() {
 
 // alias herdado do visualizador original (chamado pelo popover de cores)
 function updateSelectionUI() { renderResultsPanel(); }
+
+// ---------- PERFIL DO TERRITÓRIO (CENSO INE) ----------
+
+let territoryProfileToken = 0;
+
+async function renderTerritoryProfile(scope) {
+  const el = document.getElementById('territoryProfile');
+  if (!el) return;
+  if (!scope || (scope.level !== 'freguesia' && scope.level !== 'concelho')) {
+    el.innerHTML = '';
+    return;
+  }
+  const token = ++territoryProfileToken;
+  const vintage = censoVintageForYear(STATE.currentYear);
+  const key = String(scope.key);
+  const branch = scope.level === 'freguesia' ? 'FREG' : 'CONC';
+
+  el.innerHTML = '<div style="color: var(--muted); font-size: 0.72rem; padding: 8px 0;">A carregar perfil do território…</div>';
+  let censo = null;
+  let renda = null;
+  try {
+    censo = await loadCensoVintage(vintage);
+  } catch (_) { /* sem dados de censo */ }
+  if (vintage === 2021) {
+    try {
+      const r = await loadRenda();
+      const serie = r?.[branch]?.[key];
+      if (serie) {
+        const anos = Object.keys(serie).sort();
+        const ano = anos[anos.length - 1];
+        renda = { ano, valor: serie[ano] };
+      }
+    } catch (_) { /* sem renda */ }
+  }
+  if (token !== territoryProfileToken) return; // navegação mudou entretanto
+
+  const rec = censo?.[branch]?.[key];
+  if (!rec) {
+    el.innerHTML = '';
+    return;
+  }
+  el.innerHTML = buildTerritoryProfileHtml(rec, renda, vintage);
+}
+
+function profileAgeBarsHtml(rec) {
+  let grupos;
+  if (rec.idade_dec) {
+    const d = rec.idade_dec;
+    grupos = [
+      ['0–9', d.d0_9], ['10–19', d.d10_19], ['20–29', d.d20_29],
+      ['30–39', d.d30_39], ['40–49', d.d40_49], ['50–59', d.d50_59],
+      ['60–69', d.d60_69], ['70–79', d.d70_79], ['80+', d.d80],
+    ];
+  } else {
+    grupos = [
+      ['0–14', rec.i0_14],
+      ['15–24', rec.i15_24],
+      ['25–64', rec.i25_64],
+      ['65+', rec.i65],
+    ];
+  }
+  const total = grupos.reduce((s, [, v]) => s + (v || 0), 0);
+  if (!total) return '';
+  const maxPct = Math.max(...grupos.map(([, v]) => (v || 0) / total));
+  return grupos.map(([label, v]) => {
+    const pct = (v || 0) / total * 100;
+    const w = maxPct ? (pct / (maxPct * 100)) * 100 : 0;
+    return `<div style="display: flex; align-items: center; gap: 8px; margin: 3px 0;">
+        <span style="flex: 0 0 44px; font-size: 0.7rem; color: var(--text-sec);">${label}</span>
+        <div style="flex: 1; height: 8px; background: rgba(125,125,125,0.12);">
+          <div style="width: ${w.toFixed(1)}%; height: 100%; background: var(--accent-2); opacity: 0.85;"></div>
+        </div>
+        <span style="flex: 0 0 42px; text-align: right; font-size: 0.7rem; font-variant-numeric: tabular-nums; color: var(--text-sec);">${pct.toFixed(1)}%</span>
+      </div>`;
+  }).join('');
+}
+
+function buildTerritoryProfileHtml(rec, renda, vintage) {
+  const fmt = (n) => (typeof fmtInt === 'function' ? fmtInt(n) : Number(n).toLocaleString('pt-PT'));
+  const stat = (label, value) => `
+    <div style="display: flex; justify-content: space-between; gap: 8px; padding: 2px 0;">
+      <span style="font-size: 0.74rem; color: var(--text-sec);">${label}</span>
+      <span style="font-size: 0.74rem; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--text);">${value}</span>
+    </div>`;
+
+  let html = `<div class="neighborhood-profile">
+    <div class="profile-header">
+      <h3>Perfil do território</h3>
+      <span style="font-size: 0.66rem; color: var(--muted);">Censos ${vintage}</span>
+    </div>`;
+
+  // População
+  let popHtml = stat('População residente', fmt(rec.pop));
+  if (rec.agregados) popHtml += stat('Agregados domésticos', fmt(rec.agregados));
+  html += `<div class="profile-section"><h4>População</h4>${popHtml}</div>`;
+
+  // Faixas etárias
+  const ages = profileAgeBarsHtml(rec);
+  if (ages) html += `<div class="profile-section"><h4>Faixas etárias</h4>${ages}</div>`;
+
+  // Rendimento
+  if (renda) {
+    html += `<div class="profile-section"><h4>Rendimento mediano por agregado fiscal (${renda.ano})</h4>
+      <div class="profile-renda-display" title="Rendimento bruto declarado deduzido do IRS liquidado — mediana">
+        <span class="renda-amount">${fmt(renda.valor)}</span>
+        <span class="renda-currency">€ / ano</span>
+      </div></div>`;
+  } else if (vintage === 2021) {
+    html += `<div class="profile-section"><h4>Rendimento</h4>
+      <div style="font-size: 0.72rem; color: var(--muted);" title="O INE só divulga rendimento para territórios com 2000 ou mais sujeitos passivos">Sem dados divulgados pelo INE para este território</div></div>`;
+  }
+
+  // Emprego
+  let trab = '';
+  if (rec.tx_desemprego != null) trab += stat('Taxa de desemprego', `${rec.tx_desemprego.toLocaleString('pt-PT')}%`);
+  if (rec.tx_atividade != null) trab += stat('Taxa de atividade', `${rec.tx_atividade.toLocaleString('pt-PT')}%`);
+  if (trab) html += `<div class="profile-section"><h4>Emprego</h4>${trab}</div>`;
+
+  // Escolaridade (proporções da população residente; "sem nível" tem base 15+)
+  let esc = '';
+  if (rec.pct_ens_superior != null) esc += stat('Ensino superior completo', `${rec.pct_ens_superior.toLocaleString('pt-PT')}%`);
+  if (rec.esc_sec != null) esc += stat('Pelo menos o secundário (12º ano)', `${rec.esc_sec.toLocaleString('pt-PT')}%`);
+  if (rec.esc_3ciclo != null) esc += stat('Pelo menos o 3º ciclo (9º ano)', `${rec.esc_3ciclo.toLocaleString('pt-PT')}%`);
+  if (rec.esc_sem != null) esc += stat('Sem nível de escolaridade (15+)', `${rec.esc_sem.toLocaleString('pt-PT')}%`);
+  if (esc) html += `<div class="profile-section"><h4>Escolaridade</h4>${esc}</div>`;
+
+  // Habitação
+  let hab = '';
+  if (rec.aloj) hab += stat('Alojamentos familiares', fmt(rec.aloj));
+  if (rec.aloj_prop && rec.aloj_rhab) hab += stat('Residências próprias', `${(100 * rec.aloj_prop / rec.aloj_rhab).toFixed(0)}%`);
+  if (rec.aloj_arren && rec.aloj_rhab) hab += stat('Residências arrendadas', `${(100 * rec.aloj_arren / rec.aloj_rhab).toFixed(0)}%`);
+  if (hab) html += `<div class="profile-section"><h4>Habitação</h4>${hab}</div>`;
+
+  html += `<div style="font-size: 0.62rem; color: var(--muted); margin-top: 4px;">Fonte: INE — Censos ${vintage}${renda ? ` · Estatísticas do Rendimento ao Nível Local ${renda.ano}` : ''}</div>`;
+  html += '</div>';
+  return html;
+}
 
 // ---------- POPOVER DE COR DO PARTIDO ----------
 

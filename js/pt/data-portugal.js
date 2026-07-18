@@ -73,6 +73,36 @@ function fixSwappedIslandsGeoJSON(geojson) {
   return geojson;
 }
 
+// ====== CENSO / PERFIL DO TERRITÓRIO (INE) ======
+// Independente da eleição: cache própria, sem cache-buster (ficheiros estáticos).
+const CENSO_CACHE = new Map();
+let rendaPromise = null;
+
+// Vintage do censo mais próximo do ano da eleição em visualização.
+function censoVintageForYear(year) {
+  const y = Number(year) || 2021;
+  if (y >= 2016) return 2021;
+  if (y >= 2006) return 2011;
+  return 2001;
+}
+
+function loadCensoVintage(vintage) {
+  if (!CENSO_CACHE.has(vintage)) {
+    const p = fetchJson(`${DATA_BASE_URL}censo/censo_${vintage}.json`)
+      .catch((e) => { CENSO_CACHE.delete(vintage); throw e; });
+    CENSO_CACHE.set(vintage, p);
+  }
+  return CENSO_CACHE.get(vintage);
+}
+
+function loadRenda() {
+  if (!rendaPromise) {
+    rendaPromise = fetchJson(`${DATA_BASE_URL}censo/renda.json`)
+      .catch((e) => { rendaPromise = null; throw e; });
+  }
+  return rendaPromise;
+}
+
 // Carrega (com cache) resultados + geometria de um ano (carregamento progressivo).
 // As presidenciais (elType='pr') carregam pr_{tag}.json mas reutilizam a geometria
 // do ano AR mais próximo (PR_MAP_YEAR).
